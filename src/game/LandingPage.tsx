@@ -22,39 +22,39 @@ interface LandingPageProps {
 
 const SATELLITE_TARGETS = [
   {
-    id: "deb-2",
-    name: "Pixxel EarthObs-1",
-    type: "Defunct Multi-Spectral Bus",
-    mass: "380 KG",
-    alt: "418 KM",
-    spin: "0.52 RAD/S",
-    status: "CRITICAL DEBRIS",
-    tagColor: "text-amber-400 border-amber-500/30 bg-amber-500/10",
-    desc: "Decommissioned Earth observation satellite with stuck photovoltaic boom.",
+    id: "deb-1",
+    name: "ISRO EOS-04 (RISAT SAR)",
+    type: "C-Band Radar Earth Observation Satellite",
+    mass: "1,710 KG",
+    alt: "529 KM",
+    spin: "0.42 RAD/S",
+    status: "ORBITAL TARGET",
+    tagColor: "text-amber-300 border-amber-400/20 bg-amber-400/10",
+    desc: "Indian synthetic aperture radar satellite with deployable 3.6m parabolic antenna dish in decaying orbit.",
     motionClass: "animate-float-slow",
   },
   {
-    id: "deb-1",
-    name: "SLV Spent Upper Stage",
-    type: "Rocket Booster Casing",
-    mass: "1,420 KG",
-    alt: "432 KM",
-    spin: "0.28 RAD/S",
-    status: "HIGH MASS HAZARD",
-    tagColor: "text-red-400 border-red-500/30 bg-red-500/10",
-    desc: "Heavy depleted cryogenic rocket casing in tumbling decaying orbit.",
+    id: "deb-2",
+    name: "ISRO PSLV Upper Stage (POEM)",
+    type: "PS4 Orbital Platform Booster",
+    mass: "1,450 KG",
+    alt: "460 KM",
+    spin: "0.26 RAD/S",
+    status: "HEAVY CASING",
+    tagColor: "text-red-300 border-red-400/20 bg-red-400/10",
+    desc: "Depleted Polar Satellite Launch Vehicle 4th stage with dual liquid rocket engines and solar platform.",
     motionClass: "animate-float-delay",
   },
   {
     id: "deb-3",
-    name: "ComSat Solar Array Truss",
-    type: "Severed Wing Structure",
-    mass: "210 KG",
-    alt: "405 KM",
-    spin: "0.85 RAD/S",
-    status: "HIGH GLARE",
-    tagColor: "text-cyan-400 border-cyan-500/30 bg-cyan-500/10",
-    desc: "Severed solar array generating intense solar glints in tracking radar.",
+    name: "CSS Tiangong / ISS Module Truss",
+    type: "Station Pressurized Module & Solar Array",
+    mass: "890 KG",
+    alt: "415 KM",
+    spin: "0.68 RAD/S",
+    status: "STRUCTURAL TRUSS",
+    tagColor: "text-cyan-300 border-cyan-400/20 bg-cyan-400/10",
+    desc: "Pressurized cylinder with APAS berthing ring, integrated carbon truss, and solar wing fragment.",
     motionClass: "animate-float-slow",
   },
 ];
@@ -144,15 +144,15 @@ export function LandingPage({ onStart }: LandingPageProps) {
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <button
               onClick={onStart}
-              className="flex items-center gap-2 rounded-full bg-zinc-100 hover:bg-white px-7 py-3 text-sm font-bold text-zinc-950 transition active:scale-95 shadow-xl hover:shadow-emerald-500/10"
+              className="flex items-center gap-2 rounded-full bg-white hover:bg-zinc-100 px-7 py-3 text-sm font-bold text-zinc-950 transition active:scale-95 shadow-xl hover:shadow-white/10"
             >
-              <span>Begin mission</span>
+              <span>Begin sortie</span>
               <ArrowRight size={16} />
             </button>
 
             <button
               onClick={() => setControlsOpen(true)}
-              className="flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] hover:bg-white/[0.09] px-5 py-3 text-sm font-mono-tech text-white/80 transition"
+              className="flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] px-5 py-3 text-sm font-mono-tech text-white/90 transition backdrop-blur-md"
             >
               <Gamepad2 size={15} />
               <span>Flight controls</span>
@@ -162,7 +162,7 @@ export function LandingPage({ onStart }: LandingPageProps) {
               href="https://cosmoserve.space/"
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.04] hover:bg-white/[0.09] px-4 py-3 text-xs font-mono-tech text-white/70 hover:text-white transition"
+              className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] px-4 py-3 text-xs font-mono-tech text-white/70 hover:text-white transition backdrop-blur-md"
               title="Visit official website"
             >
               <span>cosmoserve.space</span>
@@ -170,27 +170,11 @@ export function LandingPage({ onStart }: LandingPageProps) {
             </a>
           </div>
 
-          {/* Minimal 3-Stat Strip (Aule Space Style) */}
-          <div className="grid grid-cols-3 gap-4 border-t border-white/15 pt-5 max-w-md">
-            <div>
-              <div className="text-xl sm:text-2xl font-bold font-display text-white">420 km</div>
-              <div className="mt-1 text-[11px] text-white/50 font-mono-tech">Low Earth orbit</div>
-            </div>
-            <div>
-              <div className="text-xl sm:text-2xl font-bold font-display text-white">120 km</div>
-              <div className="mt-1 text-[11px] text-white/50 font-mono-tech">Re-entry interface</div>
-            </div>
-            <div>
-              <div className="text-xl sm:text-2xl font-bold font-display text-emerald-400">4x Clamps</div>
-              <div className="mt-1 text-[11px] text-white/50 font-mono-tech">Soft-robotic paddles</div>
-            </div>
-          </div>
-
-          {/* 3-Step Teaser */}
-          <div className="flex flex-wrap gap-5 text-xs text-white/50 font-mono-tech">
-            <span>01 / Intercept debris</span>
-            <span>02 / Paddle clamp</span>
-            <span>03 / Point Nemo burn</span>
+          {/* Minimal Clean Status Line */}
+          <div className="flex items-center gap-6 border-t border-white/10 pt-4 text-xs font-mono-tech text-zinc-400">
+            <span>ORBIT: 420 KM</span>
+            <span>DISPOSAL: SUB-120 KM</span>
+            <span className="text-emerald-400">PADDLES: SOFT-ROBOTIC</span>
           </div>
         </div>
 
@@ -199,16 +183,16 @@ export function LandingPage({ onStart }: LandingPageProps) {
           <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs font-mono-tech tracking-wider text-zinc-400">
             <span className="flex items-center gap-2">
               <Radio size={12} className="text-emerald-400 animate-pulse" />
-              <span>ORBITAL RADAR TARGETS</span>
+              <span>3D RADAR TRACKING</span>
             </span>
 
             {/* Reversible 3D View Switcher */}
-            <div className="flex items-center rounded-lg bg-black/70 p-0.5 border border-white/10 backdrop-blur-md">
+            <div className="flex items-center rounded-full bg-white/[0.05] p-0.5 border border-white/10 backdrop-blur-xl">
               <button
                 onClick={() => handleToggleView("satellite")}
-                className={`px-2.5 py-1 rounded text-[10px] font-mono-tech transition ${
+                className={`px-3 py-1 rounded-full text-[10px] font-mono-tech transition ${
                   viewMode === "satellite"
-                    ? "bg-emerald-500/25 text-emerald-300 font-bold border border-emerald-500/40 shadow-sm"
+                    ? "bg-white text-zinc-950 font-bold shadow-sm"
                     : "text-zinc-400 hover:text-white"
                 }`}
                 title="Cinematic orbital tracking of targeted space debris"
@@ -217,9 +201,9 @@ export function LandingPage({ onStart }: LandingPageProps) {
               </button>
               <button
                 onClick={() => handleToggleView("mothership")}
-                className={`px-2.5 py-1 rounded text-[10px] font-mono-tech transition ${
+                className={`px-3 py-1 rounded-full text-[10px] font-mono-tech transition ${
                   viewMode === "mothership"
-                    ? "bg-cyan-500/25 text-cyan-300 font-bold border border-cyan-500/40 shadow-sm"
+                    ? "bg-white text-zinc-950 font-bold shadow-sm"
                     : "text-zinc-400 hover:text-white"
                 }`}
                 title="Return to orbital Mothercraft depot & Reviver base"
@@ -237,23 +221,23 @@ export function LandingPage({ onStart }: LandingPageProps) {
                 <div
                   key={sat.id}
                   onClick={() => handleSelectSat(idx)}
-                  className={`relative overflow-hidden rounded-xl border backdrop-blur-md p-4 transition-all duration-300 cursor-pointer ${
+                  className={`relative overflow-hidden rounded-2xl border backdrop-blur-xl p-4 transition-all duration-300 cursor-pointer ${
                     sat.motionClass
                   } ${
                     isSelected
-                      ? "border-emerald-400/50 bg-black/60 shadow-lg shadow-emerald-500/10 scale-[1.02]"
-                      : "border-white/10 bg-black/35 hover:border-white/25 hover:bg-black/50"
+                      ? "border-white/40 bg-white/[0.08] shadow-2xl scale-[1.02]"
+                      : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]"
                   }`}
                 >
                   {/* Subtle animated scanning laser line */}
-                  <div className="pointer-events-none absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent animate-scan" />
+                  <div className="pointer-events-none absolute inset-x-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent animate-scan" />
 
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm text-white">{sat.name}</span>
+                        <span className="font-medium text-sm text-white">{sat.name}</span>
                         <span
-                          className={`text-[9px] font-mono-tech px-1.5 py-0.5 rounded border ${sat.tagColor}`}
+                          className={`text-[9px] font-mono-tech px-2 py-0.5 rounded-full border ${sat.tagColor}`}
                         >
                           {sat.status}
                         </span>
@@ -265,12 +249,12 @@ export function LandingPage({ onStart }: LandingPageProps) {
 
                     {/* Animated Reticle Ping */}
                     <div className="relative flex h-6 w-6 items-center justify-center">
-                      <div className="absolute h-5 w-5 rounded-full border border-emerald-400/40 animate-pulse-glow" />
-                      <Crosshair size={13} className="text-emerald-400" />
+                      <div className="absolute h-5 w-5 rounded-full border border-white/20 animate-pulse-glow" />
+                      <Crosshair size={13} className="text-zinc-300" />
                     </div>
                   </div>
 
-                  <p className="mt-2 text-xs text-zinc-400 leading-relaxed font-sans font-light">
+                  <p className="mt-2 text-xs text-zinc-300 leading-relaxed font-sans font-light">
                     {sat.desc}
                   </p>
 
@@ -282,7 +266,7 @@ export function LandingPage({ onStart }: LandingPageProps) {
                         ● 3D CAMERA TRACKING
                       </span>
                     ) : (
-                      <span className="text-emerald-400">SOFT-ROBOTIC READY</span>
+                      <span className="text-zinc-400">SOFT-ROBOTIC READY</span>
                     )}
                   </div>
                 </div>

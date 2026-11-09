@@ -70,9 +70,58 @@ export function SimLoop() {
     const dt = Math.min(rawDelta, 0.05);
     const cam = state.camera as THREE.PerspectiveCamera;
 
-    if (sim.screen !== "playing") return;
+    if (sim.screen !== "playing" && sim.screen !== "briefing") return;
 
     sim.time += dt;
+
+    // --- 0. CINEMATIC BRIEFING CAMERA & ORBITAL SATELLITE TRACKING ---
+    if (sim.screen === "briefing") {
+      // Rotate space debris naturally over Earth
+      sim.debris.forEach((deb) => {
+        const ang = deb.angVel.length() * dt * 0.45;
+        if (ang > 1e-6) {
+          const axis = deb.angVel.clone().normalize();
+          const dq = new THREE.Quaternion().setFromAxisAngle(axis, ang);
+          deb.quat.multiply(dq);
+        }
+      });
+
+      if (sim.briefingViewMode === "satellite") {
+        // High-definition cinematic orbit around authentic real-world satellite
+        const targetDeb =
+          sim.debris.find((d) => d.id === sim.briefingTargetSatId) ||
+          sim.debris[0];
+
+        if (targetDeb) {
+          const time = state.clock.getElapsedTime() * 0.22;
+          const dist = targetDeb.radius * 2.5 + 5.5;
+          const targetCamPos = T2.set(
+            targetDeb.pos.x + Math.sin(time) * dist,
+            targetDeb.pos.y + Math.sin(time * 0.7) * 2.2 + 1.2,
+            targetDeb.pos.z + Math.cos(time) * dist,
+          );
+          chasePos.current.lerp(targetCamPos, 1 - Math.exp(-3.5 * dt));
+          cam.position.copy(chasePos.current);
+          chaseLook.current.lerp(targetDeb.pos, 1 - Math.exp(-5.5 * dt));
+          cam.lookAt(chaseLook.current);
+          cam.up.set(0, 1, 0);
+        }
+      } else {
+        // Classic Mothercraft Depot & docked Reviver base view
+        const time = state.clock.getElapsedTime() * 0.12;
+        const targetCamPos = T2.set(
+          Math.sin(time) * 16.0 + 9.0,
+          4.8 + Math.cos(time * 0.7) * 1.5,
+          24.0 + Math.cos(time) * 16.0,
+        );
+        chasePos.current.lerp(targetCamPos, 1 - Math.exp(-3.5 * dt));
+        cam.position.copy(chasePos.current);
+        chaseLook.current.lerp(T3.set(4.0, 0.5, 35.0), 1 - Math.exp(-5.5 * dt));
+        cam.lookAt(chaseLook.current);
+        cam.up.set(0, 1, 0);
+      }
+      return;
+    }
 
     if (sim.flashTimer > 0) {
       sim.flashTimer -= dt;
@@ -151,32 +200,26 @@ export function SimLoop() {
         audio.voice("Docking confirmed. Rapid refueling complete.");
       }
 
-      // --- 3D ROTATIONAL ATTITUDE & STEERING ---
+      // --- 3D ROTATIONAL ATTITUDE & STEERING (UNCONSTRAINED 360° 6-DOF) ---
       const pitchSign = sim.invertPitch ? -1 : 1;
       const sens = Math.max(0.4, Math.min(2.5, sim.sensitivity || 1.0));
 
-      // Pitch: W = Nose Down (-1), S = Nose Up (+1)
-      currentEuler.current.x = Math.max(
-        -1.35,
-        Math.min(1.35, currentEuler.current.x - ax.pitch * pitchSign * ROT_ACCEL * sens * dt),
-      );
+      // Continuous 3D pitch/yaw/roll without artificial stops or clamping barriers
+      const pitchDelta = -ax.pitch * pitchSign * ROT_ACCEL * sens * dt;
+      const yawDelta = -ax.yaw * ROT_ACCEL * sens * dt;
+      const rollDelta = (ax.roll * ROT_ACCEL * sens + ax.yaw * 0.35) * dt;
 
-      // Yaw: A / ArrowLeft = Turn Left (-1), D / ArrowRight = Turn Right (+1)
-      currentEuler.current.y -= ax.yaw * ROT_ACCEL * sens * dt;
-
-      // Roll: Natural banking into turn + manual Q/E
-      const targetRoll = ax.yaw * 0.4;
-      currentEuler.current.z += (targetRoll - currentEuler.current.z) * (1 - Math.exp(-6.5 * dt));
-      if (Math.abs(ax.roll) > 0.1) {
-        currentEuler.current.z += ax.roll * ROT_ACCEL * sens * dt;
+      if (Math.abs(pitchDelta) > 1e-6 || Math.abs(yawDelta) > 1e-6 || Math.abs(rollDelta) > 1e-6) {
+        const rotEuler = new THREE.Euler(pitchDelta, yawDelta, rollDelta, "YXZ");
+        const rotQuat = new THREE.Quaternion().setFromEuler(rotEuler);
+        sim.quat.multiply(rotQuat).normalize();
       }
 
       // RCS Rotational Damper (toggled by X)
-      if (sim.damp && Math.abs(ax.pitch) < 0.05) {
-        currentEuler.current.x += (0 - currentEuler.current.x) * (1 - Math.exp(-2.5 * dt));
+      if (sim.damp && Math.abs(ax.pitch) < 0.05 && Math.abs(ax.roll) < 0.05) {
+        // Gently damp residual angular drift when damper is active
+        sim.angVel.multiplyScalar(Math.exp(-3.5 * dt));
       }
-
-      sim.quat.setFromEuler(currentEuler.current);
 
       // --- TRANSLATION (Aule Space Direct Physics) ---
       sim.boosting = ax.boost && hasFuel;
@@ -220,37 +263,85 @@ export function SimLoop() {
       // Advance position
       sim.pos.addScaledVector(sim.vel, dt);
 
-      // Atmospheric Re-entry Corridor Detection
-      sim.distToCorridor = sim.pos.distanceTo(REENTRY_CORRIDOR_POS);
-      sim.inReentryCorridor = sim.distToCorridor <= REENTRY_CORRIDOR_RADIUS;
+      // Atmospheric Re-entry Corridor Detection (Challenging dynamic entry window)
+      sim.distToCorridor = sim.pos.distanceTo(sim.corridorPos);
+      sim.inReentryCorridor = sim.distToCorridor <= sim.corridorRadius;
       sim.deorbitReady = sim.capturedDebrisId !== null && sim.inReentryCorridor;
 
-      // Atmospheric roar sound when in re-entry zone
+      // Atmospheric roar sound when inside re-entry zone
       if (sim.inReentryCorridor) {
-        const proximity = Math.max(0, 1.0 - sim.distToCorridor / REENTRY_CORRIDOR_RADIUS);
-        audio.setRoar(proximity * 0.6);
+        const proximity = Math.max(0, 1.0 - sim.distToCorridor / sim.corridorRadius);
+        audio.setRoar(proximity * 0.65);
       } else {
         audio.setRoar(0);
       }
 
-      // Check Closest Debris Target
+      // --- TARGET PROXIMITY, CLOSE RENDEZVOUS & COLLISION DETECTION ---
       const available = sim.debris.filter((d) => !d.deorbited && !d.captured);
       let closestDist = Infinity;
-      let closestId: string | null = null;
+      let closestDeb: DebrisTarget | null = null;
+
       for (const d of available) {
         const dist = sim.pos.distanceTo(d.pos);
         if (dist < closestDist) {
           closestDist = dist;
-          closestId = d.id;
+          closestDeb = d;
         }
       }
-      sim.captureTargetId = closestId;
-      sim.canCapture = closestDist <= 35.0;
+
+      if (closestDeb) {
+        sim.captureTargetId = closestDeb.id;
+        const captureThreshold = closestDeb.radius + 3.8;   // Safe soft-robotic capture envelope (~5.5-7m)
+        const collisionThreshold = closestDeb.radius + 1.6; // Rigid hull physical contact (~3.5-5m)
+
+        sim.canCapture = closestDist <= captureThreshold;
+
+        // Feed Real-Time Docking Radar Telemetry
+        const relSpeed = sim.vel.length();
+        sim.dockingRadar.active = closestDist <= 45.0;
+        sim.dockingRadar.targetName = closestDeb.name;
+        sim.dockingRadar.range = closestDist;
+        sim.dockingRadar.relSpeed = relSpeed;
+        sim.dockingRadar.inEnvelope = sim.canCapture;
+        sim.dockingRadar.collisionHazard = closestDist <= collisionThreshold;
+
+        // Relative lateral offset for docking display
+        const toDebrisLocal = closestDeb.pos.clone().sub(sim.pos).applyQuaternion(sim.quat.clone().invert());
+        sim.dockingRadar.alignPct = Math.max(0, Math.min(100, (1 - Math.hypot(toDebrisLocal.x, toDebrisLocal.y) / 12) * 100));
+
+        // COLLISION HAZARD CHECK:
+        // In space, touching debris with rigid hull fractures spacecraft.
+        // BUT if compliant soft-robotic paddles are open/capturing (captureArmState > 0.4),
+        // the silicone/urethane paddles absorb the contact safely and cradle the satellite!
+        if (closestDist <= collisionThreshold) {
+          if (sim.captureArmState > 0.4) {
+            // Compliant soft robotic paddles securely grab target
+            if (!closestDeb.captured) {
+              closestDeb.captured = true;
+              sim.capturedDebrisId = closestDeb.id;
+              sim.flashMessage = `SOFT-ROBOTIC CLAMP SECURED: ${closestDeb.name.toUpperCase()} · FERRY TO DISPOSAL ZONE`;
+              sim.flashTimer = 4.0;
+              audio.grappleLock();
+              audio.voice("Debris secured in soft robotic cradle. De-orbit burn ready.");
+            }
+          } else {
+            // Un-cushioned rigid hull collision!
+            sim.screen = "failed";
+            sim.failReason = `ORBITAL COLLISION HAZARD: High-velocity hull impact with ${closestDeb.name}. Spacecraft pressurized chassis compromised without soft-robotic paddle deployment.`;
+            audio.thud(40, 0.7, 1.0);
+            audio.voice("Critical warning. Hull breach detected. Mission failure.");
+          }
+        }
+      } else {
+        sim.captureTargetId = null;
+        sim.canCapture = false;
+        sim.dockingRadar.active = false;
+      }
     }
 
     // --- SCREEN PROJECTIONS FOR HUD ---
     projectToScreen(cam, sim.mothercraftPos, sim.mothercraftScreen);
-    projectToScreen(cam, REENTRY_CORRIDOR_POS, sim.corridorScreen);
+    projectToScreen(cam, sim.corridorPos, sim.corridorScreen);
 
     sim.debris.forEach((deb) => {
       projectToScreen(cam, deb.pos, deb.screenPt);
@@ -269,42 +360,11 @@ export function SimLoop() {
       const chaseDist = sim.boosting ? -12.5 : -11.0;
       const camOffset = T1.set(0, 3.2, chaseDist).applyQuaternion(sim.quat);
 
-      // When in briefing mode or docked at base, provide majestic cinematic view
+      // When docked at base, provide majestic cinematic view
       let targetCamPos: THREE.Vector3;
       let targetLook: THREE.Vector3;
 
-      if (sim.screen === "briefing") {
-        if (sim.briefingViewMode === "satellite") {
-          // Dramatic high-definition orbital tracking of the targeted defunct satellite
-          const targetDeb =
-            sim.debris.find((d) => d.id === sim.briefingTargetSatId) ||
-            sim.debris[1] ||
-            sim.debris[0];
-
-          if (targetDeb) {
-            const time = state.clock.getElapsedTime() * 0.22;
-            const dist = targetDeb.radius * 2.8 + 6.0;
-            targetCamPos = T2.set(
-              targetDeb.pos.x + Math.sin(time) * dist,
-              targetDeb.pos.y + Math.sin(time * 0.7) * 2.4 + 1.2,
-              targetDeb.pos.z + Math.cos(time) * dist,
-            );
-            targetLook = T3.copy(targetDeb.pos);
-          } else {
-            targetCamPos = T2.set(8.5, 6.2, 36.0);
-            targetLook = T3.set(0, 0, 24.0);
-          }
-        } else {
-          // Classic Mothercraft Depot & docked Reviver base view
-          const time = state.clock.getElapsedTime() * 0.12;
-          targetCamPos = T2.set(
-            Math.sin(time) * 16.0 + 9.0,
-            4.8 + Math.cos(time * 0.7) * 1.5,
-            24.0 + Math.cos(time) * 16.0,
-          );
-          targetLook = T3.set(4.0, 0.5, 35.0);
-        }
-      } else if (sim.docked) {
+      if (sim.docked) {
         targetCamPos = T2.set(8.5, 6.2, 36.0);
         targetLook = T3.set(0, 0, 24.0);
       } else {
@@ -313,12 +373,19 @@ export function SimLoop() {
       }
 
       // Critically damped spring follow
-      const lerpSpeed = sim.screen === "briefing" ? 3.0 : 8.5;
+      const lerpSpeed = 8.5;
       chasePos.current.lerp(targetCamPos, 1 - Math.exp(-lerpSpeed * dt));
       cam.position.copy(chasePos.current);
 
       // Filtered forward look point (eliminates any angular wobble)
       chaseLook.current.lerp(targetLook, 1 - Math.exp(-11.0 * dt));
+
+      if (sim.screen !== "briefing" && !sim.docked) {
+        const craftUp = new THREE.Vector3(0, 1, 0).applyQuaternion(sim.quat);
+        cam.up.lerp(craftUp, 1 - Math.exp(-9.0 * dt));
+      } else {
+        cam.up.set(0, 1, 0);
+      }
       cam.lookAt(chaseLook.current);
 
       // Stable FOV (avoid continuous projection matrix recalculation)

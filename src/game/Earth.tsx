@@ -181,32 +181,36 @@ export function Earth() {
 
 /** Aerospace Atmospheric Re-entry Interface (~120km Entry Boundary) */
 export function ReentryCorridorMarker() {
+  const groupRef = useRef<THREE.Group>(null);
   const ringRef = useRef<THREE.Mesh>(null);
   const coreRef = useRef<THREE.Mesh>(null);
 
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
-    if (ringRef.current) ringRef.current.rotation.z = t * 0.05;
+    if (groupRef.current) {
+      groupRef.current.position.copy(sim.corridorPos);
+    }
+    if (ringRef.current) ringRef.current.rotation.z = t * 0.08;
     if (coreRef.current) {
-      const active = sim.capturedDebrisId !== null;
       const inZone = sim.inReentryCorridor;
-      const pulse = inZone ? 0.9 + Math.sin(t * 4) * 0.1 : 0.8;
+      const pulse = inZone ? 0.95 + Math.sin(t * 5) * 0.08 : 0.85;
       coreRef.current.scale.set(pulse, pulse, 1);
     }
   });
 
   const inZone = sim.inReentryCorridor;
   const activeColor = inZone ? new THREE.Color("#f97316") : new THREE.Color("#71717a");
+  const r = sim.corridorRadius || 65.0;
 
   return (
-    <group position={REENTRY_CORRIDOR_POS.toArray()} rotation={[Math.PI / 2, 0, 0]}>
+    <group ref={groupRef} position={sim.corridorPos.toArray()} rotation={[Math.PI / 2, 0, 0]}>
       {/* Precision Trajectory Perimeter */}
       <mesh ref={ringRef}>
-        <ringGeometry args={[REENTRY_CORRIDOR_RADIUS * 0.78, REENTRY_CORRIDOR_RADIUS * 0.8, 64]} />
+        <ringGeometry args={[r * 0.92, r, 64]} />
         <meshBasicMaterial
           color={activeColor}
           transparent
-          opacity={inZone ? 0.6 : 0.2}
+          opacity={inZone ? 0.85 : 0.35}
           side={THREE.DoubleSide}
         />
       </mesh>
@@ -214,24 +218,24 @@ export function ReentryCorridorMarker() {
       {/* Subtle Coordinate Axis Cross-ticks */}
       {[0, 45, 90, 135].map((angle) => (
         <group key={angle} rotation={[0, 0, (angle * Math.PI) / 180]}>
-          <mesh position={[REENTRY_CORRIDOR_RADIUS * 0.8, 0, 0]}>
-            <boxGeometry args={[14, 1.2, 0.5]} />
-            <meshBasicMaterial color={activeColor} transparent opacity={inZone ? 0.7 : 0.25} />
+          <mesh position={[r * 0.96, 0, 0]}>
+            <boxGeometry args={[4.5, 0.6, 0.3]} />
+            <meshBasicMaterial color={activeColor} transparent opacity={inZone ? 0.9 : 0.4} />
           </mesh>
-          <mesh position={[-REENTRY_CORRIDOR_RADIUS * 0.8, 0, 0]}>
-            <boxGeometry args={[14, 1.2, 0.5]} />
-            <meshBasicMaterial color={activeColor} transparent opacity={inZone ? 0.7 : 0.25} />
+          <mesh position={[-r * 0.96, 0, 0]}>
+            <boxGeometry args={[4.5, 0.6, 0.3]} />
+            <meshBasicMaterial color={activeColor} transparent opacity={inZone ? 0.9 : 0.4} />
           </mesh>
         </group>
       ))}
 
-      {/* Atmospheric Interface Plane Disk (Soft Re-entry Atmosphere Glow) */}
+      {/* Atmospheric Interface Plane Disk */}
       <mesh ref={coreRef}>
-        <circleGeometry args={[REENTRY_CORRIDOR_RADIUS * 0.76, 48]} />
+        <circleGeometry args={[r * 0.9, 48]} />
         <meshBasicMaterial
           color={inZone ? new THREE.Color("#ea580c") : new THREE.Color("#3f3f46")}
           transparent
-          opacity={inZone ? 0.14 : 0.04}
+          opacity={inZone ? 0.22 : 0.06}
           side={THREE.DoubleSide}
           depthWrite={false}
         />

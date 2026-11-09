@@ -353,7 +353,7 @@ export function Reviver() {
     // Grappled / Catching: folds inward snugly around the debris (targetRot = 0.72)
     const targetPaddleRot = sim.capturedDebrisId
       ? 0.72
-      : sim.canCapture
+      : (sim.canCapture || sim.captureArmState > 0.4)
       ? -0.58
       : 0.08;
 
@@ -833,74 +833,177 @@ export function DebrisItem({ target }: { target: DebrisTarget }) {
 
   return (
     <group ref={root} visible={target.burnProgress < 1.0}>
-      {/* 3D Model Variants based on Debris Type */}
+      {/* 1. ISRO PSLV SPENT 4TH STAGE (POEM PLATFORM) */}
       {target.type === "rocket_stage" && (
         <group>
-          {/* Main Stage Body */}
+          {/* Main Propellant Tank Casing */}
           <mesh material={mats.darkStructural} castShadow>
-            <cylinderGeometry args={[1.5, 1.5, 6.2, 16]} />
+            <cylinderGeometry args={[1.4, 1.4, 5.2, 32]} />
           </mesh>
-          {/* Engine Skirt */}
-          <mesh material={mats.niobiumNozzle} position={[0, -3.4, 0]}>
-            <cylinderGeometry args={[0.8, 1.4, 1.0, 16]} />
+          {/* Corrugated Interstage Fairing Skirt */}
+          <mesh material={mats.titanium} position={[0, -2.7, 0]}>
+            <cylinderGeometry args={[1.42, 1.55, 1.2, 32, 1, true]} />
           </mesh>
-          {/* Corrugated Interstage Ring */}
-          <mesh material={mats.titanium} position={[0, 3.1, 0]}>
-            <torusGeometry args={[1.52, 0.08, 8, 24]} />
-          </mesh>
+          {/* Dual ISRO PS4 Gimbaled Liquid Rocket Engines */}
+          {[-0.45, 0.45].map((x, i) => (
+            <group key={i} position={[x, -3.2, 0]}>
+              <mesh material={mats.niobiumNozzle} rotation={[Math.PI, 0, 0]}>
+                <cylinderGeometry args={[0.38, 0.16, 0.8, 16]} />
+              </mesh>
+              <mesh position={[0, -0.4, 0]}>
+                <circleGeometry args={[0.35, 16]} />
+                <meshBasicMaterial color={new THREE.Color(0.2, 0.22, 0.25)} />
+              </mesh>
+            </group>
+          ))}
+          {/* Helium Pressurization Spheres */}
+          {[-0.9, 0.9].map((x, i) => (
+            <mesh key={i} material={mats.titanium} position={[x, -0.6, 0.8]}>
+              <sphereGeometry args={[0.32, 16, 16]} />
+            </mesh>
+          ))}
+          {/* POEM Experimental Solar Panel Platform */}
+          <group position={[0, 1.8, 0]}>
+            <mesh material={mats.solarPanels} position={[1.65, 0, 0]} rotation={[0, 0.2, 0]}>
+              <boxGeometry args={[1.8, 0.04, 1.2]} />
+            </mesh>
+            <mesh material={mats.solarPanels} position={[-1.65, 0, 0]} rotation={[0, -0.2, 0]}>
+              <boxGeometry args={[1.8, 0.04, 1.2]} />
+            </mesh>
+          </group>
         </group>
       )}
 
+      {/* 2. ISRO EOS-04 (RADAR IMAGING SATELLITE - RISAT CLASS) */}
       {target.type === "defunct_sat" && (
         <group>
-          {/* Sat Bus */}
+          {/* Main Spacecraft Bus - Gold Kapton MLI Thermal Foil */}
           <mesh material={mats.gold} castShadow>
-            <boxGeometry args={[1.8, 1.6, 2.2]} />
+            <boxGeometry args={[1.8, 1.7, 2.4]} />
           </mesh>
-          {/* Camera Aperture / Sensor */}
-          <mesh material={mats.sensorLens} position={[0, 0, 1.15]}>
-            <cylinderGeometry args={[0.4, 0.4, 0.2, 16]} />
+
+          {/* High-Resolution Earth Observation Optical / Radar Payload Baffle */}
+          <mesh material={mats.darkStructural} position={[0, 0, 1.25]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.42, 0.48, 0.35, 24]} />
           </mesh>
-          {/* Broken Asymmetric Solar Wing */}
-          <mesh material={mats.solarPanels} position={[2.1, 0.3, 0]} rotation={[0.4, 0.2, 0]}>
-            <boxGeometry args={[2.4, 0.06, 1.1]} />
+          <mesh material={mats.sensorLens} position={[0, 0, 1.42]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.36, 0.36, 0.05, 24]} />
           </mesh>
+
+          {/* Iconic ISRO C-Band Deployable Parabolic Radial-Rib Radar Antenna Dish */}
+          <group position={[0, 1.35, 0]} rotation={[-0.35, 0, 0]}>
+            {/* Parabolic Antenna Dish Mesh */}
+            <mesh material={mats.gold}>
+              <sphereGeometry args={[1.7, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.42]} />
+            </mesh>
+            {/* Feed Horn Tripod Tower */}
+            <mesh material={mats.darkStructural} position={[0, 0.75, 0]}>
+              <cylinderGeometry args={[0.04, 0.04, 1.4, 8]} />
+            </mesh>
+            <mesh material={mats.titanium} position={[0, 1.45, 0]}>
+              <coneGeometry args={[0.16, 0.28, 12]} />
+            </mesh>
+          </group>
+
+          {/* Dual Articulated High-Efficiency Solar Array Wings */}
+          {[-1, 1].map((dir, idx) => (
+            <group key={idx} position={[dir * 1.05, -0.1, 0]}>
+              {/* Alpha Gimbal Hinge */}
+              <mesh material={mats.titanium} position={[dir * 0.25, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.07, 0.07, 0.5, 8]} />
+              </mesh>
+              {/* Photovoltaic Solar Panels */}
+              <mesh material={mats.solarPanels} position={[dir * 2.1, 0, 0]} rotation={[0.15, 0, 0]} castShadow>
+                <boxGeometry args={[3.2, 0.06, 1.35]} />
+              </mesh>
+            </group>
+          ))}
+
+          {/* Star Tracker Optical Baffles (Attitude Sensors) */}
+          <mesh material={mats.darkStructural} position={[0.7, -0.85, 0.6]} rotation={[0.4, 0, 0]}>
+            <cylinderGeometry args={[0.08, 0.05, 0.25, 12]} />
+          </mesh>
+          <mesh material={mats.darkStructural} position={[-0.7, -0.85, 0.6]} rotation={[0.4, 0, 0]}>
+            <cylinderGeometry args={[0.08, 0.05, 0.25, 12]} />
+          </mesh>
+
+          {/* TTC Communication Whip Antennas */}
+          {[-0.6, 0.6].map((x, i) => (
+            <mesh key={i} material={mats.silver} position={[x, -0.9, -1.0]} rotation={[-0.4, 0, x * 0.2]}>
+              <cylinderGeometry args={[0.015, 0.015, 1.4, 6]} />
+            </mesh>
+          ))}
         </group>
       )}
 
+      {/* 3. CSS TIANGONG / ISS HABITAT TRUSS MODULE */}
       {target.type === "solar_wing" && (
         <group>
-          <mesh material={mats.solarCyanPanels} castShadow>
-            <boxGeometry args={[4.2, 0.06, 1.4]} />
+          {/* Pressurized Habitat Cylinder */}
+          <mesh material={mats.whiteChassis} rotation={[Math.PI / 2, 0, 0]} castShadow>
+            <cylinderGeometry args={[1.2, 1.2, 3.4, 32]} />
           </mesh>
-          <mesh material={mats.titanium} position={[-2.2, 0, 0]}>
-            <cylinderGeometry args={[0.08, 0.08, 0.8, 8]} />
+          {/* APAS / CBM Berthing Collar */}
+          <mesh material={mats.silver} position={[0, 0, 1.75]}>
+            <torusGeometry args={[0.85, 0.12, 12, 32]} />
+          </mesh>
+          {/* Integrated Carbon Structural Truss Boom */}
+          <mesh material={mats.darkStructural} position={[1.8, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[0.14, 0.14, 2.4, 8]} />
+          </mesh>
+          {/* Massive Station Solar Array Dynamic Wing */}
+          <mesh material={mats.solarCyanPanels} position={[3.6, 0, 0]} castShadow>
+            <boxGeometry args={[4.2, 0.06, 1.8]} />
+          </mesh>
+          {/* Thermal Radiator Heat Rejector Fin */}
+          <mesh material={mats.silver} position={[-1.6, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <boxGeometry args={[2.0, 0.04, 1.4]} />
           </mesh>
         </group>
       )}
 
+      {/* 4. PIXXEL ANAND-1 HYPERSPECTRAL BUS */}
       {target.type === "shrapnel_cluster" && (
         <group>
-          <mesh material={mats.silver} castShadow>
-            <dodecahedronGeometry args={[1.6, 1]} />
+          <mesh material={mats.gold} castShadow>
+            <boxGeometry args={[1.2, 1.1, 1.6]} />
           </mesh>
-          <mesh material={mats.darkFoil} position={[0.4, -0.3, 0.5]}>
-            <tetrahedronGeometry args={[1.1, 0]} />
+          {/* Multi-spectral Optical Camera Barrel */}
+          <mesh material={mats.darkStructural} position={[0, 0, 0.9]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.3, 0.35, 0.3, 16]} />
+          </mesh>
+          <mesh material={mats.sensorLens} position={[0, 0, 1.05]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.26, 0.26, 0.05, 16]} />
+          </mesh>
+          {/* Deployable Solar Panel */}
+          <mesh material={mats.solarPanels} position={[1.4, 0, 0]} rotation={[0.2, 0, 0]}>
+            <boxGeometry args={[1.6, 0.04, 1.0]} />
           </mesh>
         </group>
       )}
 
+      {/* 5. IRNSS NAVIC SATELLITE TRANSPONDER */}
       {target.type === "sensor_bus" && (
         <group>
           <mesh material={mats.darkFoil} castShadow>
-            <cylinderGeometry args={[1.2, 1.2, 2.4, 12]} />
+            <cylinderGeometry args={[1.1, 1.1, 2.2, 16]} />
           </mesh>
-          {/* Antennas */}
-          {[-0.6, 0.6].map((x, i) => (
-            <mesh key={i} material={mats.silver} position={[x, 1.4, 0]} rotation={[0, 0, x * 0.3]}>
-              <cylinderGeometry args={[0.02, 0.02, 1.6, 6]} />
+          <mesh material={mats.gold} position={[0, 0, 0.6]}>
+            <boxGeometry args={[0.8, 0.8, 0.8]} />
+          </mesh>
+          {/* Helical Navigation Antennas */}
+          {[-0.4, 0.4].map((x, i) => (
+            <mesh key={i} material={mats.silver} position={[x, 1.25, 0]}>
+              <cylinderGeometry args={[0.02, 0.02, 1.2, 8]} />
             </mesh>
           ))}
+          {/* Dual Solar Wings */}
+          <mesh material={mats.solarPanels} position={[-1.7, 0, 0]}>
+            <boxGeometry args={[2.0, 0.04, 1.0]} />
+          </mesh>
+          <mesh material={mats.solarPanels} position={[1.7, 0, 0]}>
+            <boxGeometry args={[2.0, 0.04, 1.0]} />
+          </mesh>
         </group>
       )}
 

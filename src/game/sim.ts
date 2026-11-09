@@ -11,8 +11,9 @@ export const EARTH_CENTER = new THREE.Vector3(0, -21400, -1200);
 
 // Sub-120 km Atmospheric Entry Interface
 export const REENTRY_ALTITUDE_THRESHOLD = 260;
-export const REENTRY_CORRIDOR_POS = new THREE.Vector3(0, -140, 220);
-export const REENTRY_CORRIDOR_RADIUS = 320;
+export const DEFAULT_CORRIDOR_POS = new THREE.Vector3(0, -75, 120);
+export const REENTRY_CORRIDOR_RADIUS = 65.0; // Challenging precision corridor (shrunk from 320!)
+export const REENTRY_CORRIDOR_POS = DEFAULT_CORRIDOR_POS;
 
 // Propulsion & Fuel Calibration
 export const FUEL_CAPACITY = 100.0;
@@ -54,75 +55,75 @@ export interface ScreenPt {
 export const INITIAL_DEBRIS: Omit<DebrisTarget, "screenPt">[] = [
   {
     id: "deb-1",
-    name: "SLV Spent Upper Stage",
-    type: "rocket_stage",
-    description: "Depleted rocket booster casing in decaying elliptical orbit.",
-    pos: new THREE.Vector3(28, 8, 72),
-    vel: new THREE.Vector3(0.02, 0.01, 0.02),
+    name: "ISRO EOS-04 (Radar Imaging Sat)",
+    type: "defunct_sat",
+    description: "Real-world Indian C-band synthetic aperture radar (SAR) satellite with deployable radial-rib antenna dish.",
+    pos: new THREE.Vector3(26, 6, 68),
+    vel: new THREE.Vector3(0.02, 0.01, 0.01),
     quat: new THREE.Quaternion(),
-    angVel: new THREE.Vector3(0.04, 0.08, 0.02),
-    radius: 4.5,
-    massKg: 1420,
+    angVel: new THREE.Vector3(0.04, 0.06, 0.02),
+    radius: 3.6,
+    massKg: 1710,
     captured: false,
     deorbited: false,
     burnProgress: 0,
   },
   {
     id: "deb-2",
-    name: "Pixxel EarthObs-1 (Dead Bus)",
-    type: "defunct_sat",
-    description: "Decommissioned multi-spectral satellite with stuck solar boom.",
-    pos: new THREE.Vector3(-32, 12, 95),
+    name: "ISRO PSLV Spent 4th Stage (POEM)",
+    type: "rocket_stage",
+    description: "Depleted Polar Satellite Launch Vehicle 4th stage with dual liquid engines and experimental solar array platform.",
+    pos: new THREE.Vector3(-28, 9, 88),
     vel: new THREE.Vector3(-0.02, 0.01, -0.01),
     quat: new THREE.Quaternion(),
-    angVel: new THREE.Vector3(0.06, 0.02, 0.05),
-    radius: 3.2,
-    massKg: 380,
+    angVel: new THREE.Vector3(0.05, 0.02, 0.04),
+    radius: 3.4,
+    massKg: 1450,
     captured: false,
     deorbited: false,
     burnProgress: 0,
   },
   {
     id: "deb-3",
-    name: "ComSat Solar Array Truss",
+    name: "CSS Tiangong / ISS Module Truss",
     type: "solar_wing",
-    description: "Severed photovoltaic wing reflecting high-intensity glare.",
-    pos: new THREE.Vector3(55, 16, 140),
+    description: "Station structural truss module with carbon boom, photovoltaic array, and radiator fin.",
+    pos: new THREE.Vector3(42, 12, 120),
     vel: new THREE.Vector3(0.02, -0.01, 0.02),
     quat: new THREE.Quaternion(),
-    angVel: new THREE.Vector3(0.08, 0.03, 0.05),
+    angVel: new THREE.Vector3(0.06, 0.03, 0.04),
     radius: 3.8,
-    massKg: 210,
+    massKg: 890,
     captured: false,
     deorbited: false,
     burnProgress: 0,
   },
   {
     id: "deb-4",
-    name: "Fengyun High-Risk Fragment",
+    name: "Pixxel Anand-1 Hyperspectral Bus",
     type: "shrapnel_cluster",
-    description: "Tumbling hypervelocity jagged titanium shrapnel cluster.",
-    pos: new THREE.Vector3(-45, -18, 170),
-    vel: new THREE.Vector3(0.03, -0.02, 0.01),
+    description: "India's commercial hyperspectral Earth observation satellite bus with stuck solar wing.",
+    pos: new THREE.Vector3(-36, -14, 150),
+    vel: new THREE.Vector3(0.02, -0.02, 0.01),
     quat: new THREE.Quaternion(),
-    angVel: new THREE.Vector3(0.12, 0.1, 0.08),
+    angVel: new THREE.Vector3(0.08, 0.06, 0.05),
     radius: 2.6,
-    massKg: 95,
+    massKg: 240,
     captured: false,
     deorbited: false,
     burnProgress: 0,
   },
   {
     id: "deb-5",
-    name: "Legacy NavSat Transponder",
+    name: "IRNSS NavSat Transponder",
     type: "sensor_bus",
-    description: "Spin-stabilized navigation satellite with dead battery cells.",
-    pos: new THREE.Vector3(30, -22, 210),
+    description: "NavIC navigation satellite with solar arrays and atomic clock transponder.",
+    pos: new THREE.Vector3(25, -16, 185),
     vel: new THREE.Vector3(-0.02, 0.02, -0.02),
     quat: new THREE.Quaternion(),
-    angVel: new THREE.Vector3(0.03, 0.06, 0.04),
-    radius: 3.4,
-    massKg: 520,
+    angVel: new THREE.Vector3(0.03, 0.05, 0.03),
+    radius: 3.0,
+    massKg: 610,
     captured: false,
     deorbited: false,
     burnProgress: 0,
@@ -178,10 +179,23 @@ export const sim = {
   captureTargetId: "deb-1" as string | null,
   canCapture: false,
 
-  // Atmospheric Entry Corridor
+  // Dynamic Atmospheric Disposal Corridor
+  corridorPos: DEFAULT_CORRIDOR_POS.clone(),
+  corridorRadius: REENTRY_CORRIDOR_RADIUS,
   inReentryCorridor: false,
   distToCorridor: 0,
   deorbitReady: false,
+
+  // Real-Time Optical Docking / Approach Radar (Right-side HUD)
+  dockingRadar: {
+    active: false,
+    targetName: "",
+    range: 999,
+    relSpeed: 0,
+    alignPct: 0,
+    inEnvelope: false,
+    collisionHazard: false,
+  },
 
   // Debris List
   debris: [] as DebrisTarget[],
@@ -257,6 +271,8 @@ export function resetSim() {
     screenPt: { x: 0.5, y: 0.5, on: false, dist: 0 },
   }));
 
+  randomizeCorridor();
+
   sim.flashMessage = "DOCKED AT MOTHERCRAFT · PRESS [SPACE] OR CLICK LAUNCH";
   sim.flashTimer = 5.0;
   sim.score = {
@@ -266,6 +282,20 @@ export function resetSim() {
     fuelBonus: 0,
     timeBonus: 0,
   };
+}
+
+export function randomizeCorridor() {
+  // Move disposal zone to distinct, challenging orbital entry coordinates
+  const angle = (Math.random() * 0.8 + 0.1) * Math.PI * 2;
+  const dist = 110 + Math.random() * 70;
+  const alt = -65 - Math.random() * 35;
+  sim.corridorPos.set(
+    Math.cos(angle) * dist * 0.85,
+    alt,
+    Math.sin(angle) * dist * 0.85 + 75,
+  );
+  sim.corridorRadius = 65.0;
+  sim.distToCorridor = sim.pos.distanceTo(sim.corridorPos);
 }
 
 export function setBriefingViewMode(mode: "satellite" | "mothership", satId?: string) {
@@ -300,6 +330,9 @@ export function triggerCapture() {
     return;
   }
 
+  // Deploy compliant soft-robotic capture paddles
+  sim.captureArmState = 1.0;
+
   // Find nearest valid debris target
   const available = sim.debris.filter((d) => !d.deorbited && !d.captured);
   let closest: DebrisTarget | null = null;
@@ -313,16 +346,18 @@ export function triggerCapture() {
     }
   }
 
-  if (closest && minDist <= 35.0) {
+  // Realistic docking proximity: must be within ~5.8m of target
+  if (closest && minDist <= closest.radius + 3.8) {
     closest.captured = true;
     sim.capturedDebrisId = closest.id;
     sim.captureArmState = 1.0;
     sim.flashMessage = `GRAPPLED: ${closest.name.toUpperCase()} · FLY TO DISPOSAL ZONE`;
     sim.flashTimer = 4.0;
+  } else if (closest) {
+    sim.flashMessage = `PADDLES OPEN · GET WITHIN 5M (CURRENT: ${minDist.toFixed(1)}M)`;
+    sim.flashTimer = 2.5;
   } else {
-    sim.flashMessage = closest
-      ? `GET CLOSER: RANGE ${minDist.toFixed(0)}M (NEED <35M)`
-      : `NO TARGET IN RANGE`;
+    sim.flashMessage = `NO TARGET IN RANGE`;
     sim.flashTimer = 2.0;
   }
 }
@@ -333,11 +368,14 @@ export function releaseCapturedDebris(isDeorbit: boolean) {
   const target = sim.debris.find((d) => d.id === sim.capturedDebrisId);
   if (target) {
     target.captured = false;
+    // Release follows craft's actual orientation/momentum
+    const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(sim.quat);
+
     if (isDeorbit) {
       target.deorbited = true;
       target.burnProgress = 0.01;
-      // Kick debris downwards into atmospheric entry
-      target.vel.set(0, -15, 20);
+      // High-velocity retrograde disposal impulse along craft aim
+      target.vel.copy(sim.vel).addScaledVector(fwd, 24.0);
       sim.clearedCount++;
       sim.score.debrisBonus += 1500;
       sim.score.total += 1500;
@@ -346,8 +384,11 @@ export function releaseCapturedDebris(isDeorbit: boolean) {
       const nextTarget = sim.debris.find((d) => !d.deorbited && d.id !== target.id);
       sim.captureTargetId = nextTarget ? nextTarget.id : null;
 
-      sim.flashMessage = `${target.name.toUpperCase()} DE-ORBITED · DISPERSED IN ATMOSPHERE`;
+      sim.flashMessage = `${target.name.toUpperCase()} DE-ORBITED · BURNING IN ATMOSPHERE`;
       sim.flashTimer = 4.0;
+
+      // Move next corridor to a new orbital entry window
+      randomizeCorridor();
 
       if (sim.clearedCount >= sim.totalDebris) {
         setTimeout(() => {
@@ -355,6 +396,7 @@ export function releaseCapturedDebris(isDeorbit: boolean) {
         }, 2500);
       }
     } else {
+      target.vel.copy(sim.vel).addScaledVector(fwd, 3.5);
       sim.flashMessage = `${target.name.toUpperCase()} RELEASED`;
       sim.flashTimer = 2.5;
     }

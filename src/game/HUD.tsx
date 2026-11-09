@@ -198,6 +198,111 @@ export function HUD() {
           </div>
         ))}
 
+      {/* --- RIGHT-SIDE LATERAL APPROACH & DOCKING CAM --- */}
+      {sim.dockingRadar.active && !isDocked && (
+        <div className="pointer-events-auto absolute right-4 sm:right-6 top-24 w-64 rounded-xl border border-white/15 bg-black/75 p-3.5 backdrop-blur-2xl shadow-2xl transition-all duration-300">
+          {/* Radar Header */}
+          <div className="flex items-center justify-between border-b border-white/[0.08] pb-2 text-[10px] font-mono-tech tracking-widest text-zinc-400 uppercase">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>DOCKING RADAR</span>
+            </span>
+            <span className="text-zinc-500">BORESIGHT</span>
+          </div>
+
+          <div className="mt-2 text-xs font-semibold text-white truncate">
+            {sim.dockingRadar.targetName}
+          </div>
+
+          {/* Graphical Tactical Paddle & Target Alignment Scope */}
+          <div className="relative mt-2 h-20 w-full overflow-hidden rounded-lg border border-white/10 bg-black/60 flex items-center justify-center">
+            {/* Grid Lines */}
+            <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:8px_8px]" />
+            <div className="absolute inset-x-0 h-px bg-white/10" />
+            <div className="absolute inset-y-0 w-px bg-white/10" />
+
+            {/* Reviver White Soft-Robotic Paddles Bracket representation */}
+            <div className="absolute left-6 inset-y-3 w-5 flex flex-col justify-between">
+              <div className="h-1.5 w-full rounded-sm bg-white shadow-sm" />
+              <div className="h-4 w-1 rounded-sm bg-white/60 ml-0.5" />
+              <div className="h-1.5 w-full rounded-sm bg-white shadow-sm" />
+            </div>
+
+            {/* Approaching Satellite Icon */}
+            {(() => {
+              const normalizedDist = Math.max(0, Math.min(1, sim.dockingRadar.range / 40));
+              const leftPercent = 25 + normalizedDist * 60;
+              return (
+                <div
+                  className="absolute -translate-y-1/2 flex items-center gap-1 transition-all duration-100"
+                  style={{ left: `${leftPercent}%`, top: "50%" }}
+                >
+                  <div
+                    className={`h-4 w-4 rounded-sm border ${
+                      sim.capturedDebrisId
+                        ? "border-emerald-400 bg-emerald-500/40"
+                        : sim.dockingRadar.collisionHazard && !sim.captureArmState
+                        ? "border-red-400 bg-red-500/40 animate-ping"
+                        : sim.dockingRadar.inEnvelope
+                        ? "border-emerald-400 bg-emerald-400/30 animate-pulse"
+                        : "border-amber-400/80 bg-amber-500/20"
+                    }`}
+                  />
+                </div>
+              );
+            })()}
+
+            {/* Range Overlay in Radar Scope */}
+            <div className="absolute right-2 bottom-1.5 text-[10px] font-mono-tech text-white/70">
+              {sim.dockingRadar.range.toFixed(1)}m
+            </div>
+          </div>
+
+          {/* Live Telemetry Distance & Velocity Readouts */}
+          <div className="mt-2.5 grid grid-cols-2 gap-2 text-[11px] font-mono-tech">
+            <div className="flex flex-col rounded bg-white/[0.04] p-1.5 border border-white/[0.06]">
+              <span className="text-[9px] text-zinc-500 uppercase">Proximity Range</span>
+              <span className={`font-bold text-sm ${sim.dockingRadar.collisionHazard ? "text-red-400 animate-pulse" : "text-white"}`}>
+                {sim.dockingRadar.range.toFixed(2)} M
+              </span>
+            </div>
+            <div className="flex flex-col rounded bg-white/[0.04] p-1.5 border border-white/[0.06]">
+              <span className="text-[9px] text-zinc-500 uppercase">Closing Rate</span>
+              <span className="font-bold text-sm text-zinc-200">
+                {sim.dockingRadar.relSpeed.toFixed(2)} M/S
+              </span>
+            </div>
+          </div>
+
+          {/* Status Alert Banner */}
+          <div className="mt-2.5">
+            {sim.capturedDebrisId ? (
+              <div className="flex items-center justify-center rounded bg-emerald-500/20 border border-emerald-500/30 py-1.5 text-[10px] font-mono-tech text-emerald-300 font-bold">
+                ✓ PADDLES LOCKED & SECURED
+              </div>
+            ) : sim.dockingRadar.collisionHazard && !sim.captureArmState ? (
+              <div className="flex items-center justify-center rounded bg-red-500/20 border border-red-500/40 py-1.5 text-[10px] font-mono-tech text-red-300 font-bold animate-pulse">
+                ⚠️ COLLISION RISK // PRESS [F]
+              </div>
+            ) : sim.dockingRadar.inEnvelope ? (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  triggerCapture();
+                }}
+                className="w-full flex items-center justify-center rounded bg-white hover:bg-zinc-200 py-1.5 text-[10px] font-mono-tech text-black font-bold shadow-md transition active:scale-95"
+              >
+                DEPLOY PADDLES [F]
+              </button>
+            ) : (
+              <div className="flex items-center justify-center rounded bg-white/[0.03] border border-white/[0.06] py-1 text-[9px] font-mono-tech text-zinc-400">
+                APPROACH TARGET (&lt;5M TO GRAPPLE)
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* --- CONTEXTUAL ONE-CLICK ACTION BANNER --- */}
       <div className="flex flex-col items-center gap-2">
         {isDocked && (
