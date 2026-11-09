@@ -16,10 +16,9 @@ import { emergencyDock, returnToMainMenu, sim } from "./sim";
 interface OperationsMenuProps {
   onResume: () => void;
   onRestart: () => void;
-  onOpenAbout: () => void;
 }
 
-export function OperationsMenu({ onResume, onRestart, onOpenAbout }: OperationsMenuProps) {
+export function OperationsMenu({ onResume, onRestart }: OperationsMenuProps) {
   const [musicOn, setMusicOn] = useState(audio.musicVolume > 0.05);
   const [sfxOn, setSfxOn] = useState(audio.sfxVolume > 0.05);
   const [invertPitch, setInvertPitch] = useState(sim.invertPitch);

@@ -17,7 +17,6 @@ import {
 
 interface LandingPageProps {
   onStart: () => void;
-  onOpenAbout: () => void;
 }
 
 const SATELLITE_TARGETS = [

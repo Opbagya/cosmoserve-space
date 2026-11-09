@@ -6,12 +6,10 @@ import { SpaceScene } from "./Scene";
 import { HUD, TouchControls, useTick } from "./HUD";
 import { LandingPage } from "./LandingPage";
 import { OperationsMenu } from "./OperationsMenu";
-import { CosmoserveModal } from "./CosmoserveModal";
 import {
   Camera,
   ExternalLink,
   Home,
-  Info,
   Menu,
   Music2,
   Pause,
@@ -26,7 +24,6 @@ export function Game() {
   const [, setRun] = useState(0);
   const [isTouch, setTouch] = useState(false);
   const [musicOn, setMusicOn] = useState(true);
-  const [aboutOpen, setAboutOpen] = useState(false);
 
   const toggleMusic = () => {
     audio.init();
@@ -146,14 +143,6 @@ export function Game() {
       {s === "playing" && (
         <div className="fixed right-4 top-4 z-30 flex items-center gap-2">
           <button
-            onClick={() => setAboutOpen(true)}
-            title="About Cosmoserve Space"
-            className="flex h-8 w-8 items-center justify-center rounded border border-white/10 bg-black/50 text-zinc-300 hover:text-white hover:bg-white/10 active:scale-95 transition backdrop-blur-md"
-          >
-            <Info size={14} />
-          </button>
-
-          <button
             onClick={cycleView}
             title="Cycle Camera View (V)"
             className="flex h-8 w-8 items-center justify-center rounded border border-white/10 bg-black/50 text-zinc-300 hover:text-white hover:bg-white/10 active:scale-95 transition backdrop-blur-md"
@@ -184,19 +173,13 @@ export function Game() {
       {s === "playing" && isTouch && <TouchControls />}
 
       {/* Cosmoserve Space Landing Webpage */}
-      {s === "briefing" && (
-        <LandingPage onStart={startMission} onOpenAbout={() => setAboutOpen(true)} />
-      )}
-
-      {/* About Cosmoserve Modal */}
-      {aboutOpen && <CosmoserveModal onClose={() => setAboutOpen(false)} />}
+      {s === "briefing" && <LandingPage onStart={startMission} />}
 
       {/* Full-featured Flight Operations & Settings Menu (ESC button) */}
       {s === "paused" && (
         <OperationsMenu
           onResume={togglePause}
           onRestart={startMission}
-          onOpenAbout={() => setAboutOpen(true)}
         />
       )}
 
