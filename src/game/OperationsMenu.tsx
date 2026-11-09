@@ -371,7 +371,7 @@ export function OperationsMenu({ onResume, onRestart, onOpenAbout }: OperationsM
                   <div>
                     <span className="font-semibold text-zinc-200 font-mono-tech uppercase">Pitch Axis (W / S)</span>
                     <div className="text-[11px] text-zinc-400 mt-0.5">
-                      {invertPitch ? "Inverted (W: Up, S: Down)" : "Standard (W: Down, S: Up)"}
+                      {invertPitch ? "Inverted (W: Down, S: Up)" : "Standard (W: Up, S: Down)"}
                     </div>
                   </div>
                   <button
@@ -446,7 +446,7 @@ export function OperationsMenu({ onResume, onRestart, onOpenAbout }: OperationsM
                     <span className="font-mono-tech text-white font-bold">↓ or Ctrl</span>
                   </div>
                   <div className="flex items-center justify-between rounded bg-white/[0.02] px-3 py-1.5 border border-white/[0.04]">
-                    <span className="text-zinc-400">Pitch (Nose Down / Up)</span>
+                    <span className="text-zinc-400">Pitch (Nose Up / Down)</span>
                     <span className="font-mono-tech text-white font-bold">W / S</span>
                   </div>
                   <div className="flex items-center justify-between rounded bg-white/[0.02] px-3 py-1.5 border border-white/[0.04]">

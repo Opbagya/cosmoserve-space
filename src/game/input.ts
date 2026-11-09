@@ -111,8 +111,8 @@ export function readAxes(): Axes {
   // 3. HEAVE (Up / Down): Space (+1) / C (-1)
   const heave = clamp(k("Space") - k("KeyC"));
 
-  // 4. PITCH: W = Nose Down (-1), S = Nose Up (+1)
-  const pitch = clamp(k("KeyS") - k("KeyW") + touch.pitch);
+  // 4. PITCH: W = Nose Up (+1), S = Nose Down (-1)
+  const pitch = clamp(k("KeyW") - k("KeyS") + touch.pitch);
 
   // 5. YAW: A = Turn Left (-1), D = Turn Right (+1) (or Arrow keys)
   const yaw = clamp(k("KeyD") + k("ArrowRight") - (k("KeyA") + k("ArrowLeft")) + touch.steer);

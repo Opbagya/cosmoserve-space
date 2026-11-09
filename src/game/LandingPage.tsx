@@ -370,7 +370,7 @@ export function LandingPage({ onStart }: LandingPageProps) {
                 <span className="font-mono-tech text-white font-bold">↓ or Ctrl</span>
               </div>
               <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-2 border border-white/[0.05]">
-                <span className="text-zinc-400">Pitch (Nose Down / Up)</span>
+                <span className="text-zinc-400">Pitch (Nose Up / Down)</span>
                 <span className="font-mono-tech text-white font-bold">W / S</span>
               </div>
               <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-2 border border-white/[0.05]">
