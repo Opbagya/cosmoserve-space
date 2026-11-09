@@ -152,10 +152,10 @@ export function SimLoop() {
       }
 
       // --- 3D ROTATIONAL ATTITUDE & STEERING ---
-      // Pitch: W = Nose Down (-1), S = Nose Up (+1)
+      // Pitch: W = Nose Down, S = Nose Up
       currentEuler.current.x = Math.max(
         -1.35,
-        Math.min(1.35, currentEuler.current.x - ax.pitch * ROT_ACCEL * dt),
+        Math.min(1.35, currentEuler.current.x + ax.pitch * ROT_ACCEL * dt),
       );
 
       // Yaw: ArrowLeft / A = Turn Left (-1), ArrowRight / D = Turn Right (+1)
@@ -267,14 +267,20 @@ export function SimLoop() {
       // Third-Person Chase Cam - Smooth critically damped tracking
       const chaseDist = sim.boosting ? -12.5 : -11.0;
       const camOffset = T1.set(0, 3.2, chaseDist).applyQuaternion(sim.quat);
-      const targetCamPos = T2.copy(sim.pos).add(camOffset);
+
+      // When docked at base, elevate camera to view Reviver secured in the docking bay (prevents clipping inside station hull)
+      const targetCamPos = sim.docked
+        ? T2.set(8.5, 6.2, 36.0)
+        : T2.copy(sim.pos).add(camOffset);
+      const targetLook = sim.docked
+        ? T3.set(0, 0, 24.0)
+        : T3.set(0, 0.35, 20).applyQuaternion(sim.quat).add(sim.pos);
 
       // Critically damped spring follow
       chasePos.current.lerp(targetCamPos, 1 - Math.exp(-8.5 * dt));
       cam.position.copy(chasePos.current);
 
       // Filtered forward look point (eliminates any angular wobble)
-      const targetLook = T3.set(0, 0.35, 20).applyQuaternion(sim.quat).add(sim.pos);
       chaseLook.current.lerp(targetLook, 1 - Math.exp(-11.0 * dt));
       cam.lookAt(chaseLook.current);
 

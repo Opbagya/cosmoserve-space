@@ -209,11 +209,14 @@ export function HUD() {
               </div>
             </div>
             <button
-              onClick={undock}
+              onClick={(e) => {
+                e.preventDefault();
+                undock();
+              }}
               className="flex items-center gap-2 rounded bg-white hover:bg-zinc-200 text-black font-bold px-5 py-2 text-xs tracking-wider transition active:scale-95 shadow-md"
             >
               <Rocket size={14} />
-              <span>LAUNCH [SPACE / W]</span>
+              <span>LAUNCH</span>
             </button>
           </div>
         )}
@@ -225,10 +228,13 @@ export function HUD() {
               DISPOSAL ZONE REACHED (~120KM) · READY TO DE-ORBIT
             </div>
             <button
-              onClick={() => releaseCapturedDebris(true)}
+              onClick={(e) => {
+                e.preventDefault();
+                releaseCapturedDebris(true);
+              }}
               className="rounded bg-amber-500 hover:bg-amber-400 text-black font-bold px-5 py-2 text-xs tracking-wider transition active:scale-95 shadow-md"
             >
-              DE-ORBIT BURN [SPACE]
+              DE-ORBIT BURN
             </button>
           </div>
         )}
@@ -240,13 +246,13 @@ export function HUD() {
               TARGET IN RANGE · {currentTarget?.name}
             </div>
             <button
-              onClick={triggerCapture}
+              onClick={(e) => {
+                e.preventDefault();
+                triggerCapture();
+              }}
               className="flex items-center gap-2 rounded bg-white hover:bg-zinc-200 text-black font-bold px-5 py-2 text-xs tracking-wider transition active:scale-95 shadow-md"
             >
               <span>PICKUP TARGET</span>
-              <span className="rounded bg-black/15 px-1.5 py-0.5 text-[10px] font-mono-tech text-zinc-800">
-                [ALT / CMD / CLICK]
-              </span>
             </button>
           </div>
         )}
@@ -259,58 +265,41 @@ export function HUD() {
         )}
       </div>
 
-      {/* --- BOTTOM SECTION: HIGH-PRECISION FUEL GAUGE --- */}
-      <div className="pointer-events-auto flex flex-col sm:flex-row items-stretch sm:items-end justify-between gap-4 rounded-md telemetry-panel p-4 shadow-2xl">
+      {/* --- MINIMALIST SLIM TELEMETRY BAR (NO CLUTTER / NO INSTRUCTIONS) --- */}
+      <div className="pointer-events-auto flex items-center justify-between gap-4 rounded-lg telemetry-panel px-4 py-2.5 shadow-2xl border border-white/10 max-w-4xl mx-auto w-full">
         {/* Tracked Target Spec */}
-        <div className="flex flex-col gap-0.5 sm:max-w-xs">
-          <span className="text-[10px] font-mono-tech tracking-wider text-zinc-500">
-            {sim.capturedDebrisId ? "GRAPPLED PAYLOAD" : "CURRENT TARGET"}
-          </span>
-          <div className="text-sm font-semibold text-zinc-100 truncate">
-            {sim.capturedDebrisId
-              ? carriedDebris?.name
-              : currentTarget
-              ? currentTarget.name
-              : "ALL TARGETS DE-ORBITED"}
-          </div>
-          <div className="text-[11px] font-mono-tech text-zinc-400">
-            {sim.capturedDebrisId ? (
-              <span className="text-amber-400 font-medium">TOWING TO ATMOSPHERIC ENTRY ZONE</span>
-            ) : currentTarget ? (
-              `RANGE ${sim.pos.distanceTo(currentTarget.pos).toFixed(0)}M`
-            ) : (
-              "SORTIE COMPLETE · DOCK AT BASE"
-            )}
+        <div className="flex items-center gap-2 min-w-0 max-w-[240px]">
+          <Crosshair size={14} className="text-zinc-400 shrink-0" />
+          <div className="truncate">
+            <div className="text-xs font-semibold text-zinc-100 truncate">
+              {sim.capturedDebrisId
+                ? carriedDebris?.name
+                : currentTarget
+                ? currentTarget.name
+                : "ALL TARGETS CLEARED"}
+            </div>
+            <div className="text-[10px] font-mono-tech text-zinc-400">
+              {sim.capturedDebrisId ? (
+                <span className="text-amber-400">TOWING TO RE-ENTRY</span>
+              ) : currentTarget ? (
+                `${sim.pos.distanceTo(currentTarget.pos).toFixed(0)}M`
+              ) : (
+                "SORTIE COMPLETE"
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Advanced Fuel Gauge with Dynamic Return Indicator */}
-        <div className="flex flex-1 max-w-xl flex-col gap-1 px-1">
-          <div className="flex items-center justify-between text-[11px] font-mono-tech tracking-wider">
-            <span className="text-zinc-400 font-medium flex items-center gap-1.5">
-              <Gauge size={13} className="text-zinc-400" />
-              <span>PROPULSION ΔV</span>
-            </span>
+        {/* Slim Precision Fuel Bar */}
+        <div className="flex flex-1 max-w-md items-center gap-3">
+          <span className="text-[10px] font-mono-tech tracking-wider text-zinc-400 shrink-0">
+            ΔV
+          </span>
 
-            <div className="flex items-center gap-4">
-              <span className="text-[10px] text-amber-400 font-medium">
-                RETURN NEEDED: {returnFuelPct.toFixed(0)}%
-              </span>
-              <span
-                className={`font-semibold ${
-                  isLowFuel ? "text-amber-400" : "text-zinc-100"
-                }`}
-              >
-                {fuelPct.toFixed(1)}%
-              </span>
-            </div>
-          </div>
-
-          {/* Precision Fuel Bar Track */}
-          <div className="relative h-4 w-full overflow-hidden rounded-sm bg-zinc-950 border border-white/10">
+          <div className="relative h-2 w-full overflow-hidden rounded-full bg-zinc-950 border border-white/10">
             {/* Dynamic Return Fuel Threshold Marker */}
             <div
-              className="absolute inset-y-0 left-0 bg-amber-500/15 border-r border-amber-400/90 z-10 transition-all duration-100"
+              className="absolute inset-y-0 left-0 bg-amber-500/20 border-r border-amber-400/90 z-10 transition-all duration-100"
               style={{ width: `${returnFuelPct}%` }}
             />
 
@@ -327,41 +316,51 @@ export function HUD() {
             />
           </div>
 
-          <div className="flex items-center justify-between text-[9px] font-mono-tech text-zinc-500">
-            <span>0%</span>
-            <span>ARROWS: REGULAR FLIGHT · W/S: PITCH · A/D: YAW/ROLL · SHIFT: NITRO · ALT/CMD: PICKUP · SPACE: DE-ORBIT</span>
-            <span>100% (RAPID RECHARGE)</span>
-          </div>
+          <span
+            className={`text-[11px] font-mono-tech font-semibold shrink-0 ${
+              isLowFuel ? "text-amber-400" : "text-zinc-200"
+            }`}
+          >
+            {fuelPct.toFixed(0)}%
+          </span>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2">
+        {/* Action Button */}
+        <div className="shrink-0">
           {isDocked ? (
             <button
-              onClick={undock}
-              className="rounded bg-white hover:bg-zinc-200 text-black font-bold px-4 py-2 text-xs tracking-wider transition active:scale-95 shadow-md"
+              onClick={(e) => {
+                e.preventDefault();
+                undock();
+              }}
+              className="rounded bg-white hover:bg-zinc-200 text-black font-bold px-3.5 py-1.5 text-xs tracking-wider transition active:scale-95 shadow-md"
             >
-              LAUNCH [SPACE / ↑]
+              LAUNCH
             </button>
           ) : sim.capturedDebrisId ? (
             <button
-              onClick={() => releaseCapturedDebris(sim.inReentryCorridor)}
-              className="rounded bg-zinc-200 hover:bg-white text-zinc-950 font-bold px-4 py-2 text-xs tracking-wider transition active:scale-95"
+              onClick={(e) => {
+                e.preventDefault();
+                releaseCapturedDebris(sim.inReentryCorridor);
+              }}
+              className="rounded bg-amber-500 hover:bg-amber-400 text-black font-bold px-3.5 py-1.5 text-xs tracking-wider transition active:scale-95 shadow-md"
             >
-              {sim.inReentryCorridor ? "DE-ORBIT [SPACE]" : "RELEASE [ALT/CMD]"}
+              {sim.inReentryCorridor ? "DE-ORBIT" : "RELEASE"}
             </button>
           ) : (
             <button
-              onClick={triggerCapture}
+              onClick={(e) => {
+                e.preventDefault();
+                triggerCapture();
+              }}
               disabled={!sim.canCapture}
-              className={`flex items-center gap-1.5 rounded px-4 py-2 text-xs font-bold tracking-wider transition active:scale-95 ${
+              className={`rounded px-3.5 py-1.5 text-xs font-bold tracking-wider transition active:scale-95 ${
                 sim.canCapture
                   ? "bg-white text-black hover:bg-zinc-200 shadow-md"
                   : "bg-zinc-900 border border-white/10 text-zinc-600 cursor-not-allowed"
               }`}
             >
-              <span>PICKUP</span>
-              <span className="text-[10px] opacity-75">[ALT/CMD]</span>
+              PICKUP
             </button>
           )}
         </div>

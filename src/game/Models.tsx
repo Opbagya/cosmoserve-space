@@ -162,30 +162,30 @@ void main() {
   float lengthFalloff = pow(clamp(1.0 - y, 0.0, 1.0), 1.2);
   float envelope = radialFalloff * lengthFalloff;
 
-  // High-temperature aerospace plasma colors:
-  // - Throat core: Blinding incandescent white-blue (3000K+)
-  // - Supersonic column: Electric cerulean cyan (hydrazine/green propellant plasma)
-  // - Vacuum boundary: Deep ethereal violet & indigo fringe
-  vec3 hotWhite = vec3(0.96, 0.98, 1.0);
-  vec3 cyanPlasma = vec3(0.12, 0.68, 1.0);
-  vec3 violetFringe = vec3(0.55, 0.22, 0.95);
+  // Clean, modern aerospace rocket exhaust colors:
+  // - Throat core: Blinding incandescent white (3200K combustion chamber)
+  // - Supersonic core: Electric diamond cyan (ion / cryogenic plasma stream)
+  // - Vacuum boundary: Deep aerospace sapphire space blue
+  vec3 hotWhite = vec3(0.98, 1.0, 1.0);
+  vec3 cyanPlasma = vec3(0.08, 0.72, 1.0);
+  vec3 deepSapphire = vec3(0.12, 0.40, 0.92);
 
-  vec3 col = mix(hotWhite, cyanPlasma, smoothstep(0.0, 0.4, y));
-  col = mix(col, violetFringe, smoothstep(0.35, 0.95, y));
+  vec3 col = mix(hotWhite, cyanPlasma, smoothstep(0.0, 0.35, y));
+  col = mix(col, deepSapphire, smoothstep(0.3, 0.95, y));
 
-  // Add Mach shock discs luminosity
-  col += hotWhite * shock * 0.65;
+  // Add Mach shock diamonds luminosity
+  col += hotWhite * shock * 0.55;
 
-  // Boost color shift: intense white-hot core
+  // Boost color shift: intense incandescent core
   if (uBoost > 0.5) {
-    col = mix(col, vec3(1.0, 1.0, 1.0), 0.35);
+    col = mix(col, vec3(1.0, 1.0, 1.0), 0.45);
   }
 
-  // Final soft volumetric alpha with turbulent edges
-  float alpha = envelope * (0.65 + turb * 0.35 + shock * 0.25) * uIntensity;
+  // Final soft volumetric alpha with organic fluid edges
+  float alpha = envelope * (0.60 + turb * 0.30 + shock * 0.22) * uIntensity;
   alpha = clamp(alpha, 0.0, 1.0);
 
-  gl_FragColor = vec4(col * (1.3 + uBoost * 0.5), alpha);
+  gl_FragColor = vec4(col * (1.25 + uBoost * 0.4), alpha);
 }
 `;
 
@@ -347,13 +347,19 @@ export function Reviver() {
       rightWing.current.rotation.x += diff * lerpRate;
     }
 
-    // Animate Soft Robotic Capture Arms
-    // In free flight: open slightly. When grappled: close around target.
-    const grip = sim.capturedDebrisId ? 1.0 : sim.canCapture ? 0.45 : 0.0;
+    // Animate Cosmoserve Patented White Soft Robotic Capture Paddles
+    // Free flight: streamlined resting angle (targetRot = 0.08)
+    // In Range / Ready (< 35m): flares wide open like a petal array (targetRot = -0.58)
+    // Grappled / Catching: folds inward snugly around the debris (targetRot = 0.72)
+    const targetPaddleRot = sim.capturedDebrisId
+      ? 0.72
+      : sim.canCapture
+      ? -0.58
+      : 0.08;
+
     captureArms.current.forEach((arm) => {
       if (arm) {
-        const targetRot = 0.4 - grip * 0.75;
-        arm.rotation.x += (targetRot - arm.rotation.x) * (1 - Math.exp(-5.5 * delta));
+        arm.rotation.x += (targetPaddleRot - arm.rotation.x) * (1 - Math.exp(-6.0 * delta));
       }
     });
 
@@ -435,31 +441,44 @@ export function Reviver() {
         <torusGeometry args={[0.75, 0.08, 16, 32]} />
       </mesh>
 
-      {/* Soft Robotic Capture System - 4 Compliant Articulated Arms */}
+      {/* Cosmoserve Patented Soft Robotic Capture System - 4 Compliant White Capture Paddles */}
       {[0, 1, 2, 3].map((idx) => {
         const angle = (idx / 4) * Math.PI * 2;
         return (
           <group key={idx} rotation={[0, 0, angle]}>
             <group
-              position={[0, 0.76, NOSE_OFFSET - 0.4]}
+              position={[0, 0.72, NOSE_OFFSET - 0.35]}
               ref={(el) => (captureArms.current[idx] = el)}
             >
-              {/* Joint 1 - Base Pivot */}
-              <mesh material={mats.darkStructural}>
-                <boxGeometry args={[0.16, 0.14, 0.28]} />
+              {/* Base Hinge Pivot Bracket */}
+              <mesh material={mats.titanium}>
+                <boxGeometry args={[0.22, 0.16, 0.28]} />
               </mesh>
-              {/* Joint 2 - Upper Robotic Finger Segment */}
-              <mesh material={mats.titanium} position={[0, 0.06, 0.32]} rotation={[0.2, 0, 0]}>
-                <boxGeometry args={[0.12, 0.1, 0.45]} />
-              </mesh>
-              {/* Joint 3 - Soft Rubber Compliant Gripper Pad */}
-              <mesh material={mats.darkFoil} position={[0, -0.04, 0.58]} rotation={[-0.3, 0, 0]}>
-                <boxGeometry args={[0.14, 0.08, 0.3]} />
-              </mesh>
-              {/* Micro Magnetic Contact Plate */}
-              <mesh material={mats.gold} position={[0, -0.07, 0.68]}>
-                <boxGeometry args={[0.1, 0.04, 0.12]} />
-              </mesh>
+
+              {/* Main White Aerodynamic Compliant Capture Paddle (Visible aerospace white composite) */}
+              <group position={[0, 0.08, 0.75]}>
+                <mesh material={mats.whiteChassis} castShadow receiveShadow>
+                  <boxGeometry args={[0.62, 0.08, 1.45]} />
+                </mesh>
+
+                {/* Inner Compliant Friction Grip Pad (High-traction polymer) */}
+                <mesh material={mats.darkStructural} position={[0, -0.045, 0]}>
+                  <boxGeometry args={[0.54, 0.02, 1.35]} />
+                </mesh>
+
+                {/* Compliant Magnetic Contact Strips */}
+                <mesh material={mats.gold} position={[0, -0.052, 0.3]}>
+                  <boxGeometry args={[0.42, 0.015, 0.35]} />
+                </mesh>
+                <mesh material={mats.gold} position={[0, -0.052, -0.3]}>
+                  <boxGeometry args={[0.42, 0.015, 0.35]} />
+                </mesh>
+
+                {/* Curved Paddle Tip Contact Bumper */}
+                <mesh material={mats.silver} position={[0, 0, 0.74]} rotation={[0, 0, Math.PI / 2]}>
+                  <cylinderGeometry args={[0.045, 0.045, 0.58, 16]} />
+                </mesh>
+              </group>
             </group>
           </group>
         );

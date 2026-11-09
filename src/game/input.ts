@@ -29,7 +29,12 @@ export function attachKeyboard(onSpecial?: KeyHandler) {
       return;
     }
 
-    // Prevent Alt key from unfocusing browser window on Windows
+    // Prevent browser shortcuts for Save (Cmd/Ctrl+S), Bookmark (Cmd/Ctrl+D), Print (Cmd/Ctrl+P)
+    if ((e.metaKey || e.ctrlKey || e.altKey) && (e.code === "KeyS" || e.code === "KeyD" || e.code === "KeyP")) {
+      e.preventDefault();
+    }
+
+    // Prevent Alt key from unfocusing browser window on Windows or triggering menu shortcuts
     if (e.code === "AltLeft" || e.code === "AltRight" || e.key === "Alt") {
       e.preventDefault();
     }
@@ -55,12 +60,21 @@ export function attachKeyboard(onSpecial?: KeyHandler) {
     keys.delete(e.code);
   };
 
+  const preventAltClick = (e: MouseEvent) => {
+    if (e.altKey) {
+      // Prevents browser from treating Alt+Click as a file download shortcut
+      e.stopPropagation();
+    }
+  };
+
   window.addEventListener("keydown", down, { passive: false });
   window.addEventListener("keyup", up);
+  window.addEventListener("click", preventAltClick, { capture: true });
 
   return () => {
     window.removeEventListener("keydown", down);
     window.removeEventListener("keyup", up);
+    window.removeEventListener("click", preventAltClick, { capture: true });
     keys.clear();
   };
 }
