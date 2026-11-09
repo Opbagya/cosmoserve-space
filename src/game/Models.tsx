@@ -145,58 +145,62 @@ float plasmaNoise(vec2 p) {
 void main() {
   if (uIntensity < 0.01) discard;
 
-  float y = vUv.y; // 0.0 at nozzle exit, 1.0 at exhaust tail
-  float xDist = abs(vUv.x - 0.5) * 2.0; // 0.0 at center, 1.0 at outer edge
+  float y = vUv.y; // 0.0 at nozzle base, 1.0 at tail tip
 
-  // Supersonic exhaust velocity stream
-  float stream = y * 5.0 - uTime * 38.0;
-  float n1 = plasmaNoise(vec2(vUv.x * 6.0, stream));
-  float n2 = plasmaNoise(vec2(vUv.x * 14.0, stream * 2.3));
-  float turb = n1 * 0.6 + n2 * 0.4;
+  // Supersonic exhaust velocity stream rushing backwards away from ship
+  float stream = y * 8.0 - uTime * (48.0 + uBoost * 24.0);
+  float n1 = plasmaNoise(vec2(vUv.x * 8.0, stream));
+  float n2 = plasmaNoise(vec2(vUv.x * 16.0, stream * 2.2));
+  float turb = n1 * 0.65 + n2 * 0.35;
 
-  // Mach Shock Diamonds (characteristic supersonic expansion discs in vacuum)
-  float shock = pow(max(0.0, sin(y * 22.0 - uTime * 34.0)), 5.0) * (1.0 - y * 0.7);
+  // Mach shock diamond pulsations along the exhaust axis
+  float shock = pow(max(0.0, sin(y * 28.0 - uTime * 42.0)), 6.0) * pow(clamp(1.0 - y, 0.0, 1.0), 0.8);
 
-  // Volumetric radial & longitudinal falloff (eliminates sharp geometric cone edges)
-  float radialFalloff = pow(clamp(1.0 - xDist, 0.0, 1.0), 1.5);
-  float lengthFalloff = pow(clamp(1.0 - y, 0.0, 1.0), 1.2);
-  float envelope = radialFalloff * lengthFalloff;
+  // Smooth longitudinal falloff from blazing throat (y=0) to disappearing tail (y=1)
+  float lengthFalloff = pow(clamp(1.0 - y, 0.0, 1.0), 1.4);
 
-  // Clean, modern aerospace rocket exhaust colors:
-  // - Throat core: Blinding incandescent white (3200K combustion chamber)
-  // - Supersonic core: Electric diamond cyan (ion / cryogenic plasma stream)
-  // - Vacuum boundary: Deep aerospace sapphire space blue
-  vec3 hotWhite = vec3(0.98, 1.0, 1.0);
-  vec3 cyanPlasma = vec3(0.08, 0.72, 1.0);
-  vec3 deepSapphire = vec3(0.12, 0.40, 0.92);
+  // Soft edge falloff (eliminates hard polygonal silhouette edges)
+  vec3 viewDir = normalize(vViewPos);
+  float rim = clamp(abs(dot(vNormal, viewDir)), 0.0, 1.0);
+  float edgeSoftness = pow(rim, 0.55);
 
-  vec3 col = mix(hotWhite, cyanPlasma, smoothstep(0.0, 0.35, y));
-  col = mix(col, deepSapphire, smoothstep(0.3, 0.95, y));
+  // Clean aerospace rocket exhaust colors:
+  // - Throat core: Blinding incandescent white
+  // - High-energy core: Electric cyan / ion plasma
+  // - Expanding tail: Deep aerospace sapphire violet fading into deep space
+  vec3 hotWhite = vec3(1.0, 1.0, 1.0);
+  vec3 cyanPlasma = vec3(0.12, 0.78, 1.0);
+  vec3 deepSapphire = vec3(0.08, 0.32, 0.95);
 
-  // Add Mach shock diamonds luminosity
-  col += hotWhite * shock * 0.55;
+  vec3 col = mix(hotWhite, cyanPlasma, smoothstep(0.0, 0.28, y));
+  col = mix(col, deepSapphire, smoothstep(0.25, 0.92, y));
 
-  // Boost color shift: intense incandescent core
+  // Add incandescent Mach shock diamonds
+  col += hotWhite * shock * 0.65;
+
   if (uBoost > 0.5) {
-    col = mix(col, vec3(1.0, 1.0, 1.0), 0.45);
+    col = mix(col, vec3(1.0, 1.0, 1.0), 0.4);
   }
 
   // Final soft volumetric alpha with organic fluid edges
-  float alpha = envelope * (0.60 + turb * 0.30 + shock * 0.22) * uIntensity;
+  float alpha = lengthFalloff * edgeSoftness * (0.75 + turb * 0.25 + shock * 0.3) * uIntensity;
   alpha = clamp(alpha, 0.0, 1.0);
 
-  gl_FragColor = vec4(col * (1.25 + uBoost * 0.4), alpha);
+  gl_FragColor = vec4(col * (1.3 + uBoost * 0.5), alpha);
 }
 `;
 
 const rocketSteamVert = `
 varying vec2 vUv;
 varying vec3 vNormal;
+varying vec3 vViewPos;
 
 void main() {
   vUv = uv;
   vNormal = normalize(normalMatrix * normal);
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+  vViewPos = -mvPos.xyz;
+  gl_Position = projectionMatrix * mvPos;
 }
 `;
 
@@ -206,6 +210,7 @@ uniform float uIntensity;
 uniform float uBoost;
 varying vec2 vUv;
 varying vec3 vNormal;
+varying vec3 vViewPos;
 
 float hashSteam(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -228,27 +233,25 @@ void main() {
   if (uIntensity < 0.01) discard;
 
   float y = vUv.y;
-  float xDist = abs(vUv.x - 0.5) * 2.0;
-
-  // Expanding aerosol spray stream rushing backwards
-  float speed = uTime * (24.0 + uBoost * 14.0);
+  float speed = uTime * (28.0 + uBoost * 16.0);
   vec2 st1 = vec2(vUv.x * 10.0, y * 5.0 - speed);
-  vec2 st2 = vec2(vUv.x * 22.0 + uTime * 2.0, y * 11.0 - speed * 1.4);
+  vec2 st2 = vec2(vUv.x * 20.0 + uTime * 2.0, y * 10.0 - speed * 1.3);
   float n1 = steamNoise(st1);
   float n2 = steamNoise(st2);
   float spray = n1 * 0.65 + n2 * 0.35;
 
   // Soft vapor feathering
-  float radialFade = pow(clamp(1.0 - xDist, 0.0, 1.0), 2.0);
   float lengthFade = smoothstep(0.0, 0.15, y) * pow(clamp(1.0 - y, 0.0, 1.0), 1.5);
-  float envelope = radialFade * lengthFade;
+  vec3 viewDir = normalize(vViewPos);
+  float rim = clamp(abs(dot(vNormal, viewDir)), 0.0, 1.0);
+  float edgeSoftness = pow(rim, 0.55);
 
   // Subtle cold mist spray color (pale white-cyan cryogenic condensation)
-  vec3 mistColor = mix(vec3(0.9, 0.95, 1.0), vec3(0.5, 0.8, 1.0), y * 0.8);
+  vec3 mistColor = mix(vec3(0.92, 0.96, 1.0), vec3(0.45, 0.75, 1.0), y * 0.8);
 
   // Very delicate opacity ("very little around flame")
-  float alpha = envelope * (0.14 + spray * 0.14 + uBoost * 0.06) * uIntensity;
-  alpha = clamp(alpha, 0.0, 0.28);
+  float alpha = lengthFade * edgeSoftness * (0.12 + spray * 0.12 + uBoost * 0.06) * uIntensity;
+  alpha = clamp(alpha, 0.0, 0.25);
 
   gl_FragColor = vec4(mistColor, alpha);
 }
@@ -383,8 +386,8 @@ export function Reviver() {
     if (plumeGroup.current) {
       plumeGroup.current.visible = isForward;
       if (isForward) {
-        const s = sim.boosting ? 1.55 : 1.0;
-        plumeGroup.current.scale.set(1, 1, s);
+        const s = sim.boosting ? 1.65 : 1.0;
+        plumeGroup.current.scale.set(1.0, s, 1.0);
       }
     }
 
@@ -519,25 +522,20 @@ export function Reviver() {
       </mesh>
 
       {/* Photorealistic Volumetric Vacuum Rocket Plume with Cryogenic Steam Spray */}
-      <group ref={plumeGroup} position={[0, 0, -1.38]} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
-        {/* Delicate Ethereal Aerosol Steam Spray Sheath (Authentic Rocket Vapor Mist) */}
-        <mesh material={steamMat} position={[0, 1.42, 0]}>
-          <cylinderGeometry args={[0.32, 1.15, 2.85, 32, 20, true]} />
+      <group ref={plumeGroup} position={[0, 0, -1.35]} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
+        {/* Supersonic Core Shock Column (Blinding incandescent diamond core) */}
+        <mesh material={corePlumeMat} position={[0, 1.1, 0]}>
+          <coneGeometry args={[0.15, 2.2, 32]} />
         </mesh>
 
-        {/* Outer Flared Vacuum Expansion Bell Plume */}
-        <mesh material={plumeMat} position={[0, 1.3, 0]}>
-          <cylinderGeometry args={[0.22, 0.72, 2.6, 32, 24, true]} />
+        {/* Main High-Energy Plasma Flame Tail (Tapers backwards into vacuum) */}
+        <mesh material={plumeMat} position={[0, 1.9, 0]}>
+          <coneGeometry args={[0.30, 3.8, 32]} />
         </mesh>
 
-        {/* Inner Supersonic Shock Core Column */}
-        <mesh material={corePlumeMat} position={[0, 0.85, 0]}>
-          <cylinderGeometry args={[0.13, 0.32, 1.7, 24, 16, true]} />
-        </mesh>
-
-        {/* Cryogenic Nozzle Lip Cold-Gas Vapor Ring */}
-        <mesh material={steamMat} position={[0, 0.06, 0]}>
-          <torusGeometry args={[0.34, 0.045, 12, 32]} />
+        {/* Delicate Ethereal Aerosol Cryogenic Vapor Sheath */}
+        <mesh material={steamMat} position={[0, 2.3, 0]}>
+          <coneGeometry args={[0.44, 4.6, 32]} />
         </mesh>
       </group>
 
