@@ -58,6 +58,7 @@ export function Game() {
     audio.setRoar(0);
     audio.suspend(false);
     resetSim();
+    undock(); // Immediately undock so the user enters flight with zero delay!
     setRun((r) => r + 1);
     sim.screen = "playing";
     sim.view = 1;
@@ -65,7 +66,7 @@ export function Game() {
     sim.boosting = false;
     sim.vel.set(0, 0, 0);
     audio.music(musicOn);
-    audio.voice("Mission Embrace initialized. Welcome aboard Cosmoserve Reviver.");
+    audio.voice("Sortie active. Systems ready.");
   };
 
   useEffect(() => {

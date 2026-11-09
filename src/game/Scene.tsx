@@ -42,8 +42,8 @@ export function SpaceScene() {
           position={[SUN_DIR.x * 220, SUN_DIR.y * 220, SUN_DIR.z * 220]}
           intensity={3.8}
           castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
+          shadow-mapSize-width={1024}
+          shadow-mapSize-height={1024}
           shadow-camera-near={10}
           shadow-camera-far={600}
           shadow-camera-left={-50}

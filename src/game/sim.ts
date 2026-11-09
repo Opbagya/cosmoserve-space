@@ -195,6 +195,9 @@ export const sim = {
     alignPct: 0,
     inEnvelope: false,
     collisionHazard: false,
+    offsetX: 0,
+    offsetY: 0,
+    offsetZ: 0,
   },
 
   // Debris List

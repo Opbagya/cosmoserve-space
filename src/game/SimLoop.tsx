@@ -308,7 +308,11 @@ export function SimLoop() {
 
         // Relative lateral offset for docking display
         const toDebrisLocal = closestDeb.pos.clone().sub(sim.pos).applyQuaternion(sim.quat.clone().invert());
-        sim.dockingRadar.alignPct = Math.max(0, Math.min(100, (1 - Math.hypot(toDebrisLocal.x, toDebrisLocal.y) / 12) * 100));
+        sim.dockingRadar.offsetX = toDebrisLocal.x;
+        sim.dockingRadar.offsetY = toDebrisLocal.y;
+        sim.dockingRadar.offsetZ = toDebrisLocal.z;
+        const lateralErr = Math.hypot(toDebrisLocal.x, toDebrisLocal.y);
+        sim.dockingRadar.alignPct = Math.max(0, Math.min(100, (1 - lateralErr / 8.0) * 100));
 
         // SOFT-ROBOTIC CAPTURE VS PHYSICAL COLLISION:
         // 1. If paddles are deployed (F key / captureArmState > 0.05):
