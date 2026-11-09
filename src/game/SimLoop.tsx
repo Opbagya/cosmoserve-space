@@ -271,16 +271,30 @@ export function SimLoop() {
       const chaseDist = sim.boosting ? -12.5 : -11.0;
       const camOffset = T1.set(0, 3.2, chaseDist).applyQuaternion(sim.quat);
 
-      // When docked at base, elevate camera to view Reviver secured in the docking bay (prevents clipping inside station hull)
-      const targetCamPos = sim.docked
-        ? T2.set(8.5, 6.2, 36.0)
-        : T2.copy(sim.pos).add(camOffset);
-      const targetLook = sim.docked
-        ? T3.set(0, 0, 24.0)
-        : T3.set(0, 0.35, 20).applyQuaternion(sim.quat).add(sim.pos);
+      // When in briefing mode or docked at base, provide majestic cinematic view
+      let targetCamPos: THREE.Vector3;
+      let targetLook: THREE.Vector3;
+
+      if (sim.screen === "briefing") {
+        // Slow cinematic orbit around Reviver craft, Mothercraft, and nearby tumbling satellites
+        const time = state.clock.getElapsedTime() * 0.12;
+        targetCamPos = T2.set(
+          Math.sin(time) * 16.0 + 9.0,
+          4.8 + Math.cos(time * 0.7) * 1.5,
+          24.0 + Math.cos(time) * 16.0,
+        );
+        targetLook = T3.set(4.0, 0.5, 35.0);
+      } else if (sim.docked) {
+        targetCamPos = T2.set(8.5, 6.2, 36.0);
+        targetLook = T3.set(0, 0, 24.0);
+      } else {
+        targetCamPos = T2.copy(sim.pos).add(camOffset);
+        targetLook = T3.set(0, 0.35, 20).applyQuaternion(sim.quat).add(sim.pos);
+      }
 
       // Critically damped spring follow
-      chasePos.current.lerp(targetCamPos, 1 - Math.exp(-8.5 * dt));
+      const lerpSpeed = sim.screen === "briefing" ? 3.0 : 8.5;
+      chasePos.current.lerp(targetCamPos, 1 - Math.exp(-lerpSpeed * dt));
       cam.position.copy(chasePos.current);
 
       // Filtered forward look point (eliminates any angular wobble)
