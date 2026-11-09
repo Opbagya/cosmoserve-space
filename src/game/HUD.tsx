@@ -42,35 +42,41 @@ export function HUD() {
     <div className="pointer-events-none fixed inset-0 z-20 flex flex-col justify-between p-4 sm:p-6 font-hud select-none">
       {/* --- TOP FLIGHT TELEMETRY BAR --- */}
       <div className="flex items-start justify-between gap-4">
-        {/* Cosmoserve Mission Readout */}
-        <div className="pointer-events-auto flex flex-col gap-1.5 rounded-md telemetry-panel px-4 py-3 text-zinc-100 shadow-xl">
-          <div className="flex items-center gap-2 text-[11px] font-mono-tech tracking-[0.2em] text-zinc-400">
+        {/* Cosmoserve Mission Readout (Consolidated & Clean) */}
+        <div className="pointer-events-auto flex flex-col gap-1.5 rounded-xl telemetry-panel px-4 py-2.5 text-zinc-100 shadow-xl border border-white/10">
+          <div className="flex items-center gap-2 text-[10px] font-mono-tech tracking-[0.2em] text-zinc-400">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            <span className="font-semibold text-zinc-300">COSMOSERVE SPACE</span>
+            <span className="font-semibold text-zinc-200">COSMOSERVE SPACE</span>
             <span className="text-zinc-600">/</span>
             <span>MISSION EMBRACE</span>
           </div>
 
-          <div className="mt-0.5 flex items-baseline gap-5">
+          <div className="mt-0.5 flex items-baseline gap-4 text-xs font-mono-tech">
             <div>
-              <span className="text-[10px] font-mono-tech tracking-wider text-zinc-500">SPEED</span>
-              <div className="font-mono-tech text-base sm:text-lg font-medium text-zinc-100">
-                {sim.vel.length().toFixed(1)} <span className="text-xs text-zinc-500">M/S</span>
-              </div>
+              <span className="text-[10px] text-zinc-500">SPEED </span>
+              <span className="font-semibold text-zinc-100">{sim.vel.length().toFixed(1)} M/S</span>
             </div>
 
             <div>
-              <span className="text-[10px] font-mono-tech tracking-wider text-zinc-500">CLEARED</span>
-              <div className="font-mono-tech text-base sm:text-lg font-semibold text-zinc-100">
-                {sim.clearedCount} <span className="text-xs text-zinc-500">/ {sim.totalDebris}</span>
-              </div>
+              <span className="text-[10px] text-zinc-500">CLEARED </span>
+              <span className="font-semibold text-zinc-100">{sim.clearedCount}/{sim.totalDebris}</span>
+            </div>
+
+            <div>
+              <span className="text-[10px] text-zinc-500">HULL </span>
+              <span className="text-zinc-200">{sim.hull.toFixed(0)}%</span>
             </div>
 
             <div className="hidden sm:block">
-              <span className="text-[10px] font-mono-tech tracking-wider text-zinc-500">HULL</span>
-              <div className="font-mono-tech text-base sm:text-lg text-zinc-200">
-                {sim.hull.toFixed(0)}%
-              </div>
+              <span className="text-[10px] text-zinc-500">DEPOT </span>
+              <span className="text-zinc-200">{isDocked ? "DOCKED" : `${sim.distToMothercraft.toFixed(0)}M`}</span>
+            </div>
+
+            <div className="hidden sm:block">
+              <span className="text-[10px] text-zinc-500">DISPOSAL </span>
+              <span className={sim.inReentryCorridor ? "text-amber-400 font-bold" : "text-zinc-200"}>
+                {sim.distToCorridor.toFixed(0)}M
+              </span>
             </div>
           </div>
         </div>
@@ -86,126 +92,107 @@ export function HUD() {
           </div>
         )}
 
-        {/* Top-Right Mothercraft & Corridor Bearing */}
-        <div className="pointer-events-auto flex flex-col gap-1.5 rounded-md telemetry-panel px-4 py-3 text-right shadow-xl">
-          <div className="flex items-center justify-end gap-1.5 text-[11px] font-mono-tech tracking-wider text-zinc-400">
-            <span>MOTHERCRAFT DEPOT</span>
-            <Compass size={13} className="text-zinc-400" />
-          </div>
+        {/* Top-Right Spacer (Ensures zero collision with Camera/Music/Menu buttons!) */}
+        <div className="w-32 hidden sm:block" />
+      </div>
 
-          <div className="font-mono-tech text-base sm:text-lg font-medium text-zinc-100">
-            {isDocked ? (
-              <span className="text-emerald-400 font-semibold tracking-wider">DOCKED</span>
-            ) : (
-              <span>
-                {sim.distToMothercraft.toFixed(0)} <span className="text-xs text-zinc-500">M</span>
-              </span>
-            )}
-          </div>
+      {/* --- MINIMALIST OPTICAL SENSOR CROSSHAIR --- */}
+      <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-60">
+        <div className="relative flex items-center justify-center">
+          <div className="h-7 w-7 rounded-full border border-white/20" />
+          <div className="absolute h-1 w-1 rounded-full bg-white/60" />
+          <div className="absolute h-2.5 w-[1px] bg-white/30 -top-3.5" />
+          <div className="absolute h-2.5 w-[1px] bg-white/30 -bottom-3.5" />
+          <div className="absolute w-2.5 h-[1px] bg-white/30 -left-3.5" />
+          <div className="absolute w-2.5 h-[1px] bg-white/30 -right-3.5" />
+        </div>
+      </div>
 
-          <div className="text-[10px] font-mono-tech tracking-wider text-zinc-400">
-            DISPOSAL ZONE:{" "}
-            <span className={sim.inReentryCorridor ? "text-amber-400 font-bold" : "text-zinc-300"}>
+      {/* --- FLOATING 3D RETICLES (CLEAN & NON-OVERLAPPING) --- */}
+      {/* Mothercraft Base Marker */}
+      {sim.mothercraftScreen.on && sim.mothercraftScreen.y < 0.82 && (
+        <div
+          className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-75"
+          style={{
+            left: `${sim.mothercraftScreen.x * 100}%`,
+            top: `${sim.mothercraftScreen.y * 100}%`,
+          }}
+        >
+          <div className="flex flex-col items-center opacity-75">
+            <div className="h-4 w-4 rounded-sm border border-zinc-400/50 bg-black/50 flex items-center justify-center text-[8px] font-mono-tech text-zinc-300">
+              DEPOT
+            </div>
+            <span className="mt-0.5 text-[8px] font-mono-tech text-zinc-400">
+              {sim.distToMothercraft.toFixed(0)}M
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Atmospheric Entry Corridor Reticle */}
+      {sim.corridorScreen.on && sim.corridorScreen.y < 0.82 && (
+        <div
+          className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-75"
+          style={{
+            left: `${sim.corridorScreen.x * 100}%`,
+            top: `${sim.corridorScreen.y * 100}%`,
+          }}
+        >
+          <div className="flex flex-col items-center">
+            <div
+              className={`px-2 py-0.5 rounded text-[8px] font-mono-tech tracking-wider border ${
+                sim.inReentryCorridor
+                  ? "border-amber-400 bg-amber-950/70 text-amber-200 font-bold"
+                  : "border-zinc-700 bg-black/60 text-zinc-400"
+              }`}
+            >
+              DISPOSAL ZONE
+            </div>
+            <span className="mt-0.5 text-[8px] font-mono-tech text-zinc-400">
               {sim.distToCorridor.toFixed(0)}M
             </span>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* --- MINIMALIST OPTICAL SENSOR CROSSHAIR --- */}
-      <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-70">
-        <div className="relative flex items-center justify-center">
-          <div className="h-8 w-8 rounded-full border border-white/20" />
-          <div className="absolute h-1 w-1 rounded-full bg-white/70" />
-          <div className="absolute h-3 w-[1px] bg-white/40 -top-4" />
-          <div className="absolute h-3 w-[1px] bg-white/40 -bottom-4" />
-          <div className="absolute w-3 h-[1px] bg-white/40 -left-4" />
-          <div className="absolute w-3 h-[1px] bg-white/40 -right-4" />
-        </div>
-      </div>
-
-      {/* --- FLOATING 3D RETICLES --- */}
-      {/* Mothercraft Base Marker */}
-      <div
-        className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-75"
-        style={{
-          left: `${sim.mothercraftScreen.x * 100}%`,
-          top: `${sim.mothercraftScreen.y * 100}%`,
-        }}
-      >
-        <div className="flex flex-col items-center opacity-85">
-          <div className="h-5 w-5 rounded-sm border border-zinc-400/60 bg-black/40 flex items-center justify-center text-[9px] font-mono-tech text-zinc-300">
-            DEPOT
-          </div>
-          <span className="mt-0.5 text-[9px] font-mono-tech tracking-wider text-zinc-400">
-            {sim.distToMothercraft.toFixed(0)}M
-          </span>
-        </div>
-      </div>
-
-      {/* Atmospheric Entry Corridor Reticle */}
-      <div
-        className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-75"
-        style={{
-          left: `${sim.corridorScreen.x * 100}%`,
-          top: `${sim.corridorScreen.y * 100}%`,
-        }}
-      >
-        <div className="flex flex-col items-center">
-          <div
-            className={`px-2 py-0.5 rounded text-[9px] font-mono-tech tracking-wider border ${
-              sim.inReentryCorridor
-                ? "border-amber-400 bg-amber-950/70 text-amber-200 font-bold"
-                : "border-zinc-600 bg-black/60 text-zinc-400"
-            }`}
-          >
-            DISPOSAL ZONE
-          </div>
-          <span className="mt-0.5 text-[9px] font-mono-tech tracking-wider text-zinc-400">
-            {sim.distToCorridor.toFixed(0)}M
-          </span>
-        </div>
-      </div>
-
-      {/* Debris Target Reticles */}
+      {/* Debris Target Reticles (ONLY show text for the active target - no spam!) */}
       {sim.debris
-        .filter((d) => !d.deorbited && !d.captured)
-        .map((deb) => (
-          <div
-            key={deb.id}
-            className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-75"
-            style={{
-              left: `${deb.screenPt.x * 100}%`,
-              top: `${deb.screenPt.y * 100}%`,
-            }}
-          >
+        .filter((d) => !d.deorbited && !d.captured && d.screenPt.on && d.screenPt.y < 0.82)
+        .map((deb) => {
+          const isTarget = deb.id === sim.captureTargetId;
+
+          return (
             <div
-              className={`flex flex-col items-center ${
-                deb.id === sim.captureTargetId ? "scale-110 opacity-95" : "opacity-45"
-              }`}
+              key={deb.id}
+              className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-75"
+              style={{
+                left: `${deb.screenPt.x * 100}%`,
+                top: `${deb.screenPt.y * 100}%`,
+              }}
             >
-              <div
-                className={`h-4 w-4 rotate-45 border ${
-                  deb.id === sim.captureTargetId
-                    ? "border-white bg-white/20"
-                    : "border-zinc-500 bg-black/40"
-                }`}
-              />
-              <span className="mt-1 text-[8px] font-mono-tech tracking-wider text-zinc-300">
-                {deb.name} ({deb.screenPt.dist.toFixed(0)}M)
-              </span>
+              {isTarget ? (
+                <div className="flex flex-col items-center scale-105 opacity-90">
+                  <div className="h-4 w-4 rotate-45 border border-white bg-white/20" />
+                  <span className="mt-1 text-[9px] font-mono-tech tracking-wider text-zinc-200 bg-black/60 px-1.5 py-0.5 rounded">
+                    {deb.name} ({deb.screenPt.dist.toFixed(0)}M)
+                  </span>
+                </div>
+              ) : (
+                /* Subtle dim marker for non-targeted debris */
+                <div className="h-2 w-2 rotate-45 border border-zinc-600 bg-black/40 opacity-35" />
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
 
       {/* --- RIGHT-SIDE LATERAL APPROACH & DOCKING CAM --- */}
       {sim.dockingRadar.active && !isDocked && (
-        <div className="pointer-events-auto absolute right-4 sm:right-6 top-24 w-72 rounded-2xl border border-white/15 bg-black/80 p-3.5 backdrop-blur-2xl shadow-2xl transition-all duration-300">
+        <div className="pointer-events-auto absolute right-4 sm:right-6 top-16 w-80 rounded-2xl border border-white/15 bg-black/85 p-4 backdrop-blur-2xl shadow-2xl transition-all duration-300">
           {/* Radar Header */}
           <div className="flex items-center justify-between border-b border-white/[0.08] pb-2 text-[10px] font-mono-tech tracking-widest text-zinc-400 uppercase">
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>OPTICAL DOCKING RADAR</span>
+              <span>LATERAL APPROACH RADAR</span>
             </span>
             <span className="text-emerald-400 font-bold">
               {sim.dockingRadar.alignPct.toFixed(0)}% ALIGN
@@ -213,17 +200,17 @@ export function HUD() {
           </div>
 
           <div className="mt-2 flex items-center justify-between text-xs">
-            <span className="font-semibold text-white truncate max-w-[160px]">
+            <span className="font-semibold text-white truncate max-w-[170px]">
               {sim.dockingRadar.targetName}
             </span>
             <span className="font-mono-tech text-[10px] text-zinc-400">
-              {sim.dockingRadar.range.toFixed(2)}m
+              {sim.dockingRadar.range.toFixed(1)}m
             </span>
           </div>
 
-          {/* DUAL-SCOPE: 1. 2D Boresight Crosshair (Top) + 2. Lateral Profile Rail (Bottom) */}
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            {/* 1. 2D Boresight Crosshair (True X/Y Azimuth & Elevation) */}
+          {/* DUAL-SCOPE: 1. 2D Boresight Alignment Pip + 2. Physical Paddle & Lateral Profile Rail */}
+          <div className="mt-2.5 grid grid-cols-2 gap-2.5">
+            {/* 1. 2D Boresight Crosshair (True X/Y Offset) */}
             <div className="relative h-24 rounded-xl border border-white/10 bg-black/70 flex items-center justify-center overflow-hidden">
               <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:6px_6px]" />
               <div className="absolute inset-x-0 h-px bg-white/15" />
@@ -234,8 +221,8 @@ export function HUD() {
               {/* Dynamic Satellite Position Pip */}
               {(() => {
                 const scale = 3.5;
-                const px = Math.max(-38, Math.min(38, (sim.dockingRadar.offsetX || 0) * scale));
-                const py = Math.max(-38, Math.min(38, -(sim.dockingRadar.offsetY || 0) * scale));
+                const px = Math.max(-36, Math.min(36, (sim.dockingRadar.offsetX || 0) * scale));
+                const py = Math.max(-36, Math.min(36, -(sim.dockingRadar.offsetY || 0) * scale));
                 const isCentered = Math.hypot(px, py) < 8;
 
                 return (
@@ -264,42 +251,46 @@ export function HUD() {
               </span>
             </div>
 
-            {/* 2. Lateral Z-Profile Rail (Reviver Bow + Extended Paddles vs Debris) */}
+            {/* 2. Lateral Profile Rail - EXACT SOFT-ROBOTIC PADDLE STATE */}
             <div className="relative h-24 rounded-xl border border-white/10 bg-black/70 flex flex-col justify-between p-2 overflow-hidden">
-              <span className="text-[8px] font-mono-tech text-zinc-500">
-                LATERAL PROFILE
-              </span>
+              <div className="flex justify-between items-center text-[8px] font-mono-tech">
+                <span className="text-zinc-500">PROFILE</span>
+                <span className={sim.captureArmState > 0.05 ? "text-emerald-400 font-bold" : "text-zinc-500"}>
+                  {sim.capturedDebrisId ? "LOCKED" : sim.captureArmState > 0.05 ? "PADDLES OPEN" : "RETRACTED"}
+                </span>
+              </div>
 
               <div className="relative my-auto flex items-center w-full h-12">
-                {/* Reviver Bow Schematic */}
+                {/* Reviver Bow Schematic with Animated Compliant Soft-Robotic Paddles */}
                 <div className="relative flex flex-col items-center z-10">
-                  <div className="h-6 w-3 rounded-sm bg-zinc-400 border border-white/40" />
-                  {/* Soft-Robotic White Paddles Animation */}
+                  <div className="h-6 w-3 rounded-sm bg-zinc-300 border border-white/50" />
+                  {/* Upper Soft-Robotic White Paddle */}
                   <div
-                    className={`absolute -right-2 top-0 h-1.5 w-3 rounded-sm bg-white shadow-sm transition-transform duration-200 ${
+                    className={`absolute -right-2.5 top-0 h-1.5 w-3.5 rounded-sm bg-white shadow-sm transition-transform duration-200 origin-left ${
                       sim.capturedDebrisId
-                        ? "rotate-12 translate-y-0.5"
+                        ? "rotate-20 translate-y-0.5"
                         : sim.captureArmState > 0.05
-                        ? "-rotate-45 -translate-y-1"
+                        ? "-rotate-45 -translate-y-1 bg-emerald-300 shadow-emerald-500/50"
                         : "rotate-0"
                     }`}
                   />
+                  {/* Lower Soft-Robotic White Paddle */}
                   <div
-                    className={`absolute -right-2 bottom-0 h-1.5 w-3 rounded-sm bg-white shadow-sm transition-transform duration-200 ${
+                    className={`absolute -right-2.5 bottom-0 h-1.5 w-3.5 rounded-sm bg-white shadow-sm transition-transform duration-200 origin-left ${
                       sim.capturedDebrisId
-                        ? "-rotate-12 -translate-y-0.5"
+                        ? "-rotate-20 -translate-y-0.5"
                         : sim.captureArmState > 0.05
-                        ? "rotate-45 translate-y-1"
+                        ? "rotate-45 translate-y-1 bg-emerald-300 shadow-emerald-500/50"
                         : "rotate-0"
                     }`}
                   />
                 </div>
 
                 {/* Range Rail Line with Zone Markers */}
-                <div className="relative flex-1 h-0.5 bg-white/20 mx-2">
-                  {/* Green Latch Zone (0 to 4.2m) */}
+                <div className="relative flex-1 h-0.5 bg-white/20 mx-3">
+                  {/* Latch Zone (0 to 4.2m) */}
                   <div className="absolute left-0 inset-y-0 w-1/4 bg-emerald-500/50" />
-                  {/* Deploy Zone (4.2m to 14m) */}
+                  {/* Approach Zone (4.2m to 14m) */}
                   <div className="absolute left-1/4 inset-y-0 w-1/2 bg-amber-500/30" />
                 </div>
 
@@ -313,7 +304,7 @@ export function HUD() {
                       style={{ right: `${Math.max(4, 65 - rightOffset)}px` }}
                     >
                       <div
-                        className={`h-4 w-4 rounded border ${
+                        className={`h-4 w-4 rounded border transition-colors ${
                           sim.capturedDebrisId
                             ? "border-emerald-400 bg-emerald-500/60"
                             : sim.captureArmState > 0.05
@@ -327,48 +318,53 @@ export function HUD() {
               </div>
 
               <div className="flex justify-between text-[8px] font-mono-tech text-zinc-500">
-                <span>0M</span>
+                <span>0M (CATCH)</span>
                 <span>4.2M</span>
                 <span>14M+</span>
               </div>
             </div>
           </div>
 
-          {/* Detailed 4-Coordinate Telemetry Matrix */}
-          <div className="mt-2.5 grid grid-cols-3 gap-1.5 text-[10px] font-mono-tech">
+          {/* Clean 2-Metric Telemetry Bar */}
+          <div className="mt-2.5 grid grid-cols-2 gap-2 text-[10px] font-mono-tech">
             <div className="flex flex-col rounded-lg bg-white/[0.03] p-1.5 border border-white/[0.05]">
-              <span className="text-[8px] text-zinc-500 uppercase">Range (Z)</span>
+              <span className="text-[8px] text-zinc-500 uppercase">Range to Cradle</span>
               <span className="font-bold text-white text-xs">
                 {sim.dockingRadar.range.toFixed(2)}m
               </span>
             </div>
             <div className="flex flex-col rounded-lg bg-white/[0.03] p-1.5 border border-white/[0.05]">
-              <span className="text-[8px] text-zinc-500 uppercase">Lateral (X)</span>
-              <span className="font-bold text-zinc-200 text-xs">
-                {(sim.dockingRadar.offsetX || 0) >= 0 ? "+" : ""}
-                {(sim.dockingRadar.offsetX || 0).toFixed(2)}m
-              </span>
-            </div>
-            <div className="flex flex-col rounded-lg bg-white/[0.03] p-1.5 border border-white/[0.05]">
-              <span className="text-[8px] text-zinc-500 uppercase">Vertical (Y)</span>
-              <span className="font-bold text-zinc-200 text-xs">
-                {(sim.dockingRadar.offsetY || 0) >= 0 ? "+" : ""}
-                {(sim.dockingRadar.offsetY || 0).toFixed(2)}m
+              <span className="text-[8px] text-zinc-500 uppercase">Closing Speed</span>
+              <span
+                className={`font-bold text-xs ${
+                  sim.dockingRadar.relSpeed > 3.0 && sim.captureArmState <= 0.05
+                    ? "text-red-400 animate-pulse"
+                    : "text-zinc-200"
+                }`}
+              >
+                {sim.dockingRadar.relSpeed.toFixed(1)} m/s
+                {sim.dockingRadar.relSpeed <= 3.0 ? " (SAFE)" : " (WARNING)"}
               </span>
             </div>
           </div>
 
-          {/* Dynamic Status / Paddle Control Button */}
+          {/* Exact Soft-Robotic Paddle State & Control Button */}
           <div className="mt-2.5">
             {sim.capturedDebrisId ? (
-              <div className="flex items-center justify-center rounded-xl bg-emerald-500/20 border border-emerald-500/40 py-1.5 text-[10px] font-mono-tech text-emerald-300 font-bold">
+              <div className="flex items-center justify-center rounded-xl bg-emerald-500/20 border border-emerald-500/40 py-2 text-[10px] font-mono-tech text-emerald-300 font-bold">
                 ✓ PADDLES LOCKED & SECURED
               </div>
             ) : sim.captureArmState > 0.05 ? (
-              <div className="flex items-center justify-center rounded-xl bg-emerald-500/15 border border-emerald-500/30 py-1.5 text-[10px] font-mono-tech text-emerald-300 font-semibold animate-pulse">
-                PADDLES ARMED · APPROACH TO LATCH (&lt;4.2M)
-              </div>
-            ) : sim.dockingRadar.inEnvelope ? (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  triggerCapture();
+                }}
+                className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 py-2 text-[11px] font-mono-tech text-black font-bold shadow-md transition active:scale-95 animate-pulse"
+              >
+                <span>⚡ PADDLES ARMED · [F] TO RETRACT</span>
+              </button>
+            ) : (
               <button
                 onClick={(e) => {
                   e.preventDefault();
@@ -376,80 +372,19 @@ export function HUD() {
                 }}
                 className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-white hover:bg-zinc-100 py-2 text-[11px] font-mono-tech text-zinc-950 font-bold shadow-md transition active:scale-95"
               >
-                <span>DEPLOY PADDLES [F]</span>
+                <span>DEPLOY CAPTURE PADDLES [F]</span>
               </button>
-            ) : (
-              <div className="flex items-center justify-center rounded-xl bg-white/[0.03] border border-white/[0.06] py-1.5 text-[10px] font-mono-tech text-zinc-400">
-                APPROACH TARGET (&lt;14M TO ARM)
-              </div>
             )}
           </div>
         </div>
       )}
 
-      {/* --- CONTEXTUAL ONE-CLICK ACTION BANNER --- */}
+      {/* --- LOW FUEL WARNING BANNER (ONLY WHEN CRITICAL) --- */}
       <div className="flex flex-col items-center gap-2">
-        {isDocked && (
-          <div className="pointer-events-auto flex items-center gap-4 rounded-md telemetry-panel-elevated px-6 py-3 shadow-2xl border border-white/20">
-            <div className="flex items-center gap-2">
-              <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
-              <div className="text-xs font-mono-tech tracking-wide text-zinc-200">
-                DOCKED AT MOTHERCRAFT · FUEL 100% · SYSTEMS READY
-              </div>
-            </div>
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                undock();
-              }}
-              className="flex items-center gap-2 rounded bg-white hover:bg-zinc-200 text-black font-bold px-5 py-2 text-xs tracking-wider transition active:scale-95 shadow-md"
-            >
-              <Rocket size={14} />
-              <span>LAUNCH</span>
-            </button>
-          </div>
-        )}
-
-        {!isDocked && sim.deorbitReady && (
-          <div className="pointer-events-auto flex items-center gap-4 rounded-md telemetry-panel-elevated px-6 py-3 shadow-2xl border border-amber-500/50">
-            <Flame size={16} className="text-amber-400" />
-            <div className="text-xs font-mono-tech tracking-wide text-zinc-200">
-              DISPOSAL ZONE REACHED (~120KM) · READY TO DE-ORBIT
-            </div>
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                releaseCapturedDebris(true);
-              }}
-              className="rounded bg-amber-500 hover:bg-amber-400 text-black font-bold px-5 py-2 text-xs tracking-wider transition active:scale-95 shadow-md"
-            >
-              DE-ORBIT BURN
-            </button>
-          </div>
-        )}
-
-        {!isDocked && sim.canCapture && !sim.capturedDebrisId && (
-          <div className="pointer-events-auto flex items-center gap-4 rounded-md telemetry-panel-elevated px-6 py-3 shadow-2xl border border-white/20">
-            <Crosshair size={16} className="text-zinc-200" />
-            <div className="text-xs font-mono-tech tracking-wide text-zinc-200">
-              TARGET IN RANGE · {currentTarget?.name}
-            </div>
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                triggerCapture();
-              }}
-              className="flex items-center gap-2 rounded bg-white hover:bg-zinc-200 text-black font-bold px-5 py-2 text-xs tracking-wider transition active:scale-95 shadow-md"
-            >
-              <span>PICKUP TARGET</span>
-            </button>
-          </div>
-        )}
-
         {!isDocked && isLowFuel && (
-          <div className="flex items-center gap-2 rounded-md bg-amber-950/80 border border-amber-500/50 px-4 py-2 text-xs font-mono-tech tracking-wider text-amber-200">
+          <div className="pointer-events-auto flex items-center gap-2 rounded-md bg-amber-950/80 border border-amber-500/50 px-4 py-2 text-xs font-mono-tech tracking-wider text-amber-200 shadow-xl">
             <AlertTriangle size={14} className="text-amber-400" />
-            <span>RETURN TO MOTHERCRAFT REQUIRED FOR RECHARGE</span>
+            <span>LOW DELTA-V · RETURN TO MOTHERCRAFT FOR RECHARGE</span>
           </div>
         )}
       </div>

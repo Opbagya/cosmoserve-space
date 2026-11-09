@@ -227,25 +227,30 @@ export function SimLoop() {
       sim.boosting = ax.boost && hasFuel;
       const speed = sim.boosting ? BOOST_ACCEL : TRANS_ACCEL;
 
+      // If boosting, drive forward at full surge unless user is actively holding reverse
+      const effectiveSurge = sim.boosting
+        ? (ax.surge < -0.1 ? ax.surge : 1.0)
+        : ax.surge;
+
       // Forward (+Z in craft frame), Lateral (Starboard screen right), Vertical (+Y dorsal)
       const fwd = T1.set(0, 0, 1).applyQuaternion(sim.quat);
       const right = T3.set(-1, 0, 0).applyQuaternion(sim.quat);
       const up = new THREE.Vector3(0, 1, 0).applyQuaternion(sim.quat);
 
       const targetVel = T2.set(0, 0, 0)
-        .addScaledVector(fwd, ax.surge * speed)
+        .addScaledVector(fwd, effectiveSurge * speed)
         .addScaledVector(right, ax.sway * (speed * 0.45))
         .addScaledVector(up, ax.heave * (speed * 0.35));
 
-      sim.thrustWorld.copy(fwd).multiplyScalar(ax.surge);
-      // Boosters only fire forward when surge > 0 or boosting
-      sim.thrustAmount = sim.boosting ? 1.0 : (ax.surge > 0.05 ? ax.surge : 0);
+      sim.thrustWorld.copy(fwd).multiplyScalar(effectiveSurge);
+      // Boosters fire forward whenever boosting or surge > 0
+      sim.thrustAmount = sim.boosting ? 1.0 : (effectiveSurge > 0.05 ? effectiveSurge : 0);
       sim.steerAmount = ax.yaw;
       sim.swayAmount = ax.sway;
       sim.heaveAmount = ax.heave;
 
       const hasThrustInput =
-        Math.abs(ax.surge) > 0.05 ||
+        Math.abs(effectiveSurge) > 0.05 ||
         Math.abs(ax.sway) > 0.05 ||
         Math.abs(ax.heave) > 0.05 ||
         sim.boosting;
@@ -320,9 +325,9 @@ export function SimLoop() {
 
         sim.canCapture = closestDist <= captureThreshold;
 
-        // Feed Real-Time Docking Radar Telemetry
+        // Feed Real-Time Docking Radar Telemetry (active only when approaching uncaptured target)
         const relSpeed = sim.vel.length();
-        sim.dockingRadar.active = closestDist <= 45.0;
+        sim.dockingRadar.active = closestDist <= 45.0 && !sim.capturedDebrisId;
         sim.dockingRadar.targetName = closestDeb.name;
         sim.dockingRadar.range = closestDist;
         sim.dockingRadar.relSpeed = relSpeed;

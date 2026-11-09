@@ -330,8 +330,8 @@ export function Reviver() {
           />
         </mesh>
 
-        {/* Crossed Jet Ribbon B (Y-Z plane) */}
-        <mesh geometry={plumeRibbonGeo} rotation={[Math.PI / 2, 0, Math.PI / 2]}>
+        {/* Crossed Jet Ribbon B (Y-Z plane - perfectly perpendicular, straight back along -Z) */}
+        <mesh geometry={plumeRibbonGeo} rotation={[Math.PI / 2, Math.PI / 2, 0]}>
           <meshBasicMaterial
             map={rocketFlameTex}
             transparent

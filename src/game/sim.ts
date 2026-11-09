@@ -347,8 +347,9 @@ export function triggerCapture() {
     return;
   }
 
-  // Deploy compliant soft-robotic capture paddles
-  sim.captureArmState = 1.0;
+  // Toggle compliant soft-robotic capture paddles
+  const willDeploy = sim.captureArmState <= 0.05;
+  sim.captureArmState = willDeploy ? 1.0 : 0.0;
 
   // Find nearest valid debris target
   const available = sim.debris.filter((d) => !d.deorbited && !d.captured);
@@ -363,21 +364,22 @@ export function triggerCapture() {
     }
   }
 
-  // If within grapple reach (<= 6.5m), immediately lock onto target
-  if (closest && minDist <= 6.5) {
+  // If within grapple reach (<= 4.2m) and deploying, immediately lock onto target
+  if (willDeploy && closest && minDist <= 4.2) {
     closest.captured = true;
     sim.capturedDebrisId = closest.id;
     sim.captureArmState = 1.0;
     sim.flashMessage = `GRAPPLED: ${closest.name.toUpperCase()} · FLY TO DISPOSAL ZONE`;
     sim.flashTimer = 4.0;
-  } else if (closest && minDist <= 14.0) {
-    sim.flashMessage = `PADDLES DEPLOYED · FLY INTO TARGET TO SECURE (RANGE: ${minDist.toFixed(1)}M)`;
+    audio.grappleLock();
+  } else if (willDeploy && closest && minDist <= 25.0) {
+    sim.flashMessage = `PADDLES ARMED · APPROACH TARGET TO SECURE (RANGE: ${minDist.toFixed(1)}M)`;
     sim.flashTimer = 2.5;
-  } else if (closest) {
-    sim.flashMessage = `PADDLES OPEN · TARGET RANGE: ${minDist.toFixed(0)}M`;
+  } else if (willDeploy) {
+    sim.flashMessage = `PADDLES DEPLOYED & ARMED`;
     sim.flashTimer = 2.0;
   } else {
-    sim.flashMessage = `NO TARGET IN RANGE`;
+    sim.flashMessage = `PADDLES RETRACTED · STREAMLINED`;
     sim.flashTimer = 2.0;
   }
 }
