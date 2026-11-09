@@ -1,9 +1,15 @@
 export interface Axes {
-  thrust: number; // +1 forward, -1 reverse/brake
-  steer: number;  // -1 left, +1 right (yaw & banking roll)
-  pitch: number;  // -1 down, +1 up (optional fine trim)
-  boost: boolean; // turbo boost
-  action: boolean; // space / launch / deorbit
+  // Regular movement (Arrow keys)
+  forward: number; // ArrowUp (+1 forward) / ArrowDown (-1 back/brake)
+  strafe: number;  // ArrowRight (+1 right) / ArrowLeft (-1 left)
+
+  // 3D Rotational attitude (W, A, S, D)
+  pitch: number;   // W (-1 nose down) / S (+1 nose up)
+  yaw: number;     // D (+1 yaw right) / A (-1 yaw left)
+  roll: number;    // D (+1 bank right) / A (-1 bank left) (plus Q/E)
+
+  nitro: boolean;  // Shift (Nitro turbo boost)
+  action: boolean; // Space / Enter (Launch / Undock / De-orbit)
 }
 
 const keys = new Set<string>();
@@ -26,6 +32,11 @@ export function attachKeyboard(onSpecial?: KeyHandler) {
 
     // Prevent Alt key from unfocusing browser window on Windows
     if (e.code === "AltLeft" || e.code === "AltRight" || e.key === "Alt") {
+      e.preventDefault();
+    }
+
+    // Prevent Command key from triggering browser shortcuts like Cmd+D or Cmd+S
+    if (e.code === "MetaLeft" || e.code === "MetaRight") {
       e.preventDefault();
     }
 
@@ -56,42 +67,65 @@ export function attachKeyboard(onSpecial?: KeyHandler) {
 }
 
 export function readAxes(): Axes {
-  let thrust = 0;
-  let steer = 0;
+  let forward = 0;
+  let strafe = 0;
   let pitch = 0;
-  let boost = false;
+  let yaw = 0;
+  let roll = 0;
+  let nitro = false;
   let action = false;
 
-  // 1. FORWARD / REVERSE: W / S or Arrow Up / Down (Immediate, intuitive flight)
-  if (keys.has("KeyW") || keys.has("ArrowUp")) thrust += 1;
-  if (keys.has("KeyS") || keys.has("ArrowDown")) thrust -= 1;
+  // 1. REGULAR MOVEMENT: Arrow keys
+  // ArrowUp: Front (forward thrust) / ArrowDown: Back (reverse/brake)
+  if (keys.has("ArrowUp")) forward += 1;
+  if (keys.has("ArrowDown")) forward -= 1;
 
-  // Also allow R / F as alternate throttle
-  if (keys.has("KeyR")) thrust += 1;
-  if (keys.has("KeyF")) thrust -= 1;
+  // ArrowLeft / ArrowRight: Lateral strafe / steer
+  if (keys.has("ArrowLeft")) strafe -= 1;
+  if (keys.has("ArrowRight")) strafe += 1;
 
-  // 2. TURN LEFT / RIGHT: A / D or Arrow Left / Right
-  if (keys.has("KeyA") || keys.has("ArrowLeft")) steer -= 1;
-  if (keys.has("KeyD") || keys.has("ArrowRight")) steer += 1;
+  // 2. 3D FLIGHT ATTITUDE: W, A, S, D
+  // W: Pitch down / nose forward (-1)
+  // S: Pitch up / nose up (+1)
+  if (keys.has("KeyW")) pitch -= 1;
+  if (keys.has("KeyS")) pitch += 1;
 
-  // 3. Optional Fine Pitch: Q (nose down)
-  if (keys.has("KeyQ")) pitch -= 1;
+  // A: Yaw left (-1) & bank roll left (-1)
+  // D: Yaw right (+1) & bank roll right (+1)
+  if (keys.has("KeyA")) {
+    yaw -= 1;
+    roll -= 1;
+  }
+  if (keys.has("KeyD")) {
+    yaw += 1;
+    roll += 1;
+  }
 
-  // 4. Boost Surge: Shift
-  if (keys.has("ShiftLeft") || keys.has("ShiftRight")) boost = true;
+  // Pure Roll support with Q / E
+  if (keys.has("KeyQ")) roll -= 1;
+  if (keys.has("KeyE")) roll += 1;
 
-  // 5. Action: Space or Enter (Launch / Undock / De-orbit)
+  // 3. NITRO TURBO BOOST: Shift (Hold)
+  if (keys.has("ShiftLeft") || keys.has("ShiftRight")) nitro = true;
+
+  // 4. ACTION: Space or Enter (Launch / Undock / De-orbit)
   if (keys.has("Space") || keys.has("Enter")) action = true;
 
-  // 6. Touch / Virtual Stick overrides (Mobile)
-  if (Math.abs(touch.thrust) > 0.05) thrust = touch.thrust;
-  if (Math.abs(touch.steer) > 0.05) steer = touch.steer;
+  // 5. Touch / Virtual Stick overrides (Mobile)
+  if (Math.abs(touch.thrust) > 0.05) forward = touch.thrust;
+  if (Math.abs(touch.steer) > 0.05) {
+    yaw = touch.steer;
+    strafe = touch.steer;
+    roll = touch.steer;
+  }
   if (Math.abs(touch.pitch) > 0.05) pitch = touch.pitch;
-  if (touch.boost) boost = true;
+  if (touch.boost) nitro = true;
 
-  thrust = Math.max(-1, Math.min(1, thrust));
-  steer = Math.max(-1, Math.min(1, steer));
+  forward = Math.max(-1, Math.min(1, forward));
+  strafe = Math.max(-1, Math.min(1, strafe));
   pitch = Math.max(-1, Math.min(1, pitch));
+  yaw = Math.max(-1, Math.min(1, yaw));
+  roll = Math.max(-1, Math.min(1, roll));
 
-  return { thrust, steer, pitch, boost, action };
+  return { forward, strafe, pitch, yaw, roll, nitro, action };
 }

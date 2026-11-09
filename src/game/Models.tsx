@@ -189,6 +189,71 @@ void main() {
 }
 `;
 
+const rocketSteamVert = `
+varying vec2 vUv;
+varying vec3 vNormal;
+
+void main() {
+  vUv = uv;
+  vNormal = normalize(normalMatrix * normal);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
+const rocketSteamFrag = `
+uniform float uTime;
+uniform float uIntensity;
+uniform float uBoost;
+varying vec2 vUv;
+varying vec3 vNormal;
+
+float hashSteam(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
+float steamNoise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(hashSteam(i + vec2(0.0, 0.0)), hashSteam(i + vec2(1.0, 0.0)), u.x),
+    mix(hashSteam(i + vec2(0.0, 1.0)), hashSteam(i + vec2(1.0, 1.0)), u.x),
+    u.y
+  );
+}
+
+void main() {
+  if (uIntensity < 0.01) discard;
+
+  float y = vUv.y;
+  float xDist = abs(vUv.x - 0.5) * 2.0;
+
+  // Expanding aerosol spray stream rushing backwards
+  float speed = uTime * (24.0 + uBoost * 14.0);
+  vec2 st1 = vec2(vUv.x * 10.0, y * 5.0 - speed);
+  vec2 st2 = vec2(vUv.x * 22.0 + uTime * 2.0, y * 11.0 - speed * 1.4);
+  float n1 = steamNoise(st1);
+  float n2 = steamNoise(st2);
+  float spray = n1 * 0.65 + n2 * 0.35;
+
+  // Soft vapor feathering
+  float radialFade = pow(clamp(1.0 - xDist, 0.0, 1.0), 2.0);
+  float lengthFade = smoothstep(0.0, 0.15, y) * pow(clamp(1.0 - y, 0.0, 1.0), 1.5);
+  float envelope = radialFade * lengthFade;
+
+  // Subtle cold mist spray color (pale white-cyan cryogenic condensation)
+  vec3 mistColor = mix(vec3(0.9, 0.95, 1.0), vec3(0.5, 0.8, 1.0), y * 0.8);
+
+  // Very delicate opacity ("very little around flame")
+  float alpha = envelope * (0.14 + spray * 0.14 + uBoost * 0.06) * uIntensity;
+  alpha = clamp(alpha, 0.0, 0.28);
+
+  gl_FragColor = vec4(mistColor, alpha);
+}
+`;
+
 /** The Reviver - Cosmoserve's Active Debris Removal Servicer */
 export function Reviver() {
   const mats = useSpaceMaterials();
@@ -227,6 +292,24 @@ export function Reviver() {
       new THREE.ShaderMaterial({
         vertexShader: rocketPlumeVert,
         fragmentShader: rocketPlumeFrag,
+        uniforms: {
+          uTime: { value: 0 },
+          uIntensity: { value: 0 },
+          uBoost: { value: 0 },
+        },
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+    [],
+  );
+
+  const steamMat = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        vertexShader: rocketSteamVert,
+        fragmentShader: rocketSteamFrag,
         uniforms: {
           uTime: { value: 0 },
           uIntensity: { value: 0 },
@@ -286,6 +369,10 @@ export function Reviver() {
     corePlumeMat.uniforms.uTime.value = clock.elapsedTime * 1.3;
     corePlumeMat.uniforms.uIntensity.value = intensity;
     corePlumeMat.uniforms.uBoost.value = boost;
+
+    steamMat.uniforms.uTime.value = clock.elapsedTime * 1.1;
+    steamMat.uniforms.uIntensity.value = intensity;
+    steamMat.uniforms.uBoost.value = boost;
 
     if (plumeGroup.current) {
       plumeGroup.current.visible = isForward;
@@ -412,8 +499,13 @@ export function Reviver() {
         <meshBasicMaterial color={new THREE.Color(0.9, 0.96, 1.0)} />
       </mesh>
 
-      {/* Photorealistic Volumetric Vacuum Rocket Plume */}
+      {/* Photorealistic Volumetric Vacuum Rocket Plume with Cryogenic Steam Spray */}
       <group ref={plumeGroup} position={[0, 0, -1.38]} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
+        {/* Delicate Ethereal Aerosol Steam Spray Sheath (Authentic Rocket Vapor Mist) */}
+        <mesh material={steamMat} position={[0, 1.42, 0]}>
+          <cylinderGeometry args={[0.32, 1.15, 2.85, 32, 20, true]} />
+        </mesh>
+
         {/* Outer Flared Vacuum Expansion Bell Plume */}
         <mesh material={plumeMat} position={[0, 1.3, 0]}>
           <cylinderGeometry args={[0.22, 0.72, 2.6, 32, 24, true]} />
@@ -422,6 +514,11 @@ export function Reviver() {
         {/* Inner Supersonic Shock Core Column */}
         <mesh material={corePlumeMat} position={[0, 0.85, 0]}>
           <cylinderGeometry args={[0.13, 0.32, 1.7, 24, 16, true]} />
+        </mesh>
+
+        {/* Cryogenic Nozzle Lip Cold-Gas Vapor Ring */}
+        <mesh material={steamMat} position={[0, 0.06, 0]}>
+          <torusGeometry args={[0.34, 0.045, 12, 32]} />
         </mesh>
       </group>
 

@@ -79,16 +79,18 @@ export function Game() {
         return;
       }
 
-      // Soft-Robotic Capture: E or Click Action Button (also supports Cmd / Alt / C)
+      // Soft-Robotic Capture: Alt or Command (Robotic Pickup), also supports Click and E
       const isCaptureKey =
-        code === "KeyE" ||
-        code === "KeyC" ||
-        code === "MetaLeft" ||
-        code === "MetaRight" ||
         code === "AltLeft" ||
         code === "AltRight" ||
+        code === "MetaLeft" ||
+        code === "MetaRight" ||
+        event.key === "Alt" ||
+        event.key === "Meta" ||
         event.metaKey ||
-        event.altKey;
+        event.altKey ||
+        code === "KeyE" ||
+        code === "KeyC";
 
       if (isCaptureKey) {
         if (sim.canCapture) {

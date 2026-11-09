@@ -78,24 +78,24 @@ export function Briefing({ onStart, onOpenAbout }: BriefingProps) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-xs">
             <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
-              <span className="text-zinc-400">Forward Thrust (Front)</span>
-              <span className="font-mono-tech text-white font-bold">W or ↑</span>
+              <span className="text-zinc-400">Regular Move (Fwd/Rev/Strafe)</span>
+              <span className="font-mono-tech text-white font-bold">↑ / ↓ / ← / →</span>
             </div>
             <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
-              <span className="text-zinc-400">Reverse / Brake (Back)</span>
-              <span className="font-mono-tech text-white font-bold">S or ↓</span>
+              <span className="text-zinc-400">Pitch (Nose Down / Up)</span>
+              <span className="font-mono-tech text-white font-bold">W / S</span>
             </div>
             <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
-              <span className="text-zinc-400">Steer Left / Right</span>
-              <span className="font-mono-tech text-white font-bold">A / D or ← / →</span>
+              <span className="text-zinc-400">Yaw & Bank Roll (Left / Right)</span>
+              <span className="font-mono-tech text-white font-bold">A / D</span>
             </div>
             <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
-              <span className="text-zinc-400">Turbo Boost Surge</span>
+              <span className="text-zinc-400">Nitro Turbo Boost</span>
               <span className="font-mono-tech text-amber-400 font-semibold">Shift (Hold)</span>
             </div>
             <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
-              <span className="text-zinc-400">Soft Robotic Capture</span>
-              <span className="font-mono-tech text-emerald-400 font-bold">E / Click / Cmd / Alt</span>
+              <span className="text-zinc-400">Robotic Pickup (Capture)</span>
+              <span className="font-mono-tech text-emerald-400 font-bold">Alt / Command</span>
             </div>
             <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
               <span className="text-zinc-400">Atmospheric De-Orbit</span>
@@ -103,7 +103,7 @@ export function Briefing({ onStart, onOpenAbout }: BriefingProps) {
             </div>
             <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
               <span className="text-zinc-400">Launch from Depot</span>
-              <span className="font-mono-tech text-zinc-100 font-semibold">Space or W</span>
+              <span className="font-mono-tech text-zinc-100 font-semibold">Space or ↑</span>
             </div>
             <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
               <span className="text-zinc-400">Cycle Camera View</span>

@@ -243,9 +243,9 @@ export function HUD() {
               onClick={triggerCapture}
               className="flex items-center gap-2 rounded bg-white hover:bg-zinc-200 text-black font-bold px-5 py-2 text-xs tracking-wider transition active:scale-95 shadow-md"
             >
-              <span>CAPTURE</span>
+              <span>PICKUP TARGET</span>
               <span className="rounded bg-black/15 px-1.5 py-0.5 text-[10px] font-mono-tech text-zinc-800">
-                [E / CLICK]
+                [ALT / CMD / CLICK]
               </span>
             </button>
           </div>
@@ -329,7 +329,7 @@ export function HUD() {
 
           <div className="flex items-center justify-between text-[9px] font-mono-tech text-zinc-500">
             <span>0%</span>
-            <span>W/S: FORWARD / REVERSE · A/D: STEER · SHIFT: BOOST · SPACE: LAUNCH / DE-ORBIT · E: CAPTURE</span>
+            <span>ARROWS: REGULAR FLIGHT · W/S: PITCH · A/D: YAW/ROLL · SHIFT: NITRO · ALT/CMD: PICKUP · SPACE: DE-ORBIT</span>
             <span>100% (RAPID RECHARGE)</span>
           </div>
         </div>
@@ -341,14 +341,14 @@ export function HUD() {
               onClick={undock}
               className="rounded bg-white hover:bg-zinc-200 text-black font-bold px-4 py-2 text-xs tracking-wider transition active:scale-95 shadow-md"
             >
-              LAUNCH [SPACE / W]
+              LAUNCH [SPACE / ↑]
             </button>
           ) : sim.capturedDebrisId ? (
             <button
               onClick={() => releaseCapturedDebris(sim.inReentryCorridor)}
               className="rounded bg-zinc-200 hover:bg-white text-zinc-950 font-bold px-4 py-2 text-xs tracking-wider transition active:scale-95"
             >
-              {sim.inReentryCorridor ? "DE-ORBIT [SPACE]" : "RELEASE [E]"}
+              {sim.inReentryCorridor ? "DE-ORBIT [SPACE]" : "RELEASE [ALT/CMD]"}
             </button>
           ) : (
             <button
@@ -360,8 +360,8 @@ export function HUD() {
                   : "bg-zinc-900 border border-white/10 text-zinc-600 cursor-not-allowed"
               }`}
             >
-              <span>CAPTURE</span>
-              <span className="text-[10px] opacity-75">[E]</span>
+              <span>PICKUP</span>
+              <span className="text-[10px] opacity-75">[ALT/CMD]</span>
             </button>
           )}
         </div>
@@ -432,7 +432,7 @@ export function TouchControls() {
           onPointerUp={() => (touch.boost = false)}
           className="h-11 w-14 rounded-md border border-white/20 bg-black/70 text-[11px] font-mono-tech font-bold text-amber-300 active:bg-amber-400 active:text-black shadow-lg"
         >
-          BOOST
+          NITRO
         </button>
 
         {sim.docked ? (
@@ -455,7 +455,7 @@ export function TouchControls() {
                 : "bg-zinc-800 text-zinc-400 border border-white/20"
             }`}
           >
-            {sim.inReentryCorridor ? "DEORB" : sim.capturedDebrisId ? "DROP" : "GRAP"}
+            {sim.inReentryCorridor ? "DEORB" : sim.capturedDebrisId ? "DROP" : "PICKUP"}
           </button>
         )}
       </div>
