@@ -639,7 +639,9 @@ export function Reviver() {
 export function Mothercraft() {
   const mats = useSpaceMaterials();
   const ringRef = useRef<THREE.Group>(null);
-  const dockLightMat = useMemo(() => hdr(1.6, 1.5, 1.2), []);
+  const dockLightMat = useMemo(() => hdr(1.8, 1.6, 1.3), []);
+  const ionGlowMat = useMemo(() => hdr(0.5, 2.4, 4.5), []);
+  const amberBeaconMat = useMemo(() => hdr(3.5, 1.8, 0.4), []);
 
   useFrame((_, delta) => {
     // Slowly rotate the habitat module centrifuge
@@ -650,20 +652,77 @@ export function Mothercraft() {
 
   return (
     <group position={sim.mothercraftPos.toArray()}>
-      {/* Main Central Station Hull */}
+      {/* Main Central Station Hull - High-Precision 64-segment Smooth Cylinder */}
       <mesh material={mats.whiteChassis} rotation={[Math.PI / 2, 0, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[4.5, 4.5, 28, 24]} />
+        <cylinderGeometry args={[4.5, 4.5, 28, 64]} />
       </mesh>
 
-      {/* Forward Logistics Module */}
-      <mesh material={mats.titanium} position={[0, 0, 16]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[3.2, 4.2, 5, 16]} />
+      {/* Concentric Structural Reinforcement Ribs along the Main Hull */}
+      {[-11, -5.5, 0, 5.5, 11].map((z, idx) => (
+        <mesh key={idx} material={mats.titanium} position={[0, 0, z]} rotation={[0, 0, 0]}>
+          <torusGeometry args={[4.58, 0.12, 16, 64]} />
+        </mesh>
+      ))}
+
+      {/* Aft Structural Fairing & Tapered Adapter (Eliminates the raw flat grey cut-off disk) */}
+      <mesh material={mats.titanium} position={[0, 0, -15.5]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <cylinderGeometry args={[3.8, 4.5, 3.0, 64]} />
+      </mesh>
+
+      {/* Aft Pressurized Aerodynamic Dome */}
+      <mesh material={mats.whiteChassis} position={[0, 0, -17.0]} rotation={[-Math.PI / 2, 0, 0]} castShadow>
+        <sphereGeometry args={[3.8, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2]} />
+      </mesh>
+
+      {/* Heavy Aft Propulsion Thrust Plate */}
+      <mesh material={mats.darkStructural} position={[0, 0, -17.4]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[3.2, 3.2, 0.8, 64]} />
+      </mesh>
+
+      {/* Quad Orbital Station-Keeping Ion Thruster Cluster */}
+      {[
+        [-1.3, -1.3],
+        [1.3, -1.3],
+        [-1.3, 1.3],
+        [1.3, 1.3],
+      ].map(([x, y], idx) => (
+        <group key={idx} position={[x, y, -17.8]}>
+          {/* Engine Nozzle Bell */}
+          <mesh material={mats.niobiumNozzle} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.55, 0.32, 0.9, 32]} />
+          </mesh>
+          {/* Luminous Xenon Ion Plasma Emitter Core */}
+          <mesh material={ionGlowMat} position={[0, 0, -0.46]}>
+            <circleGeometry args={[0.48, 24]} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Aft Secondary Cargo Berthing Port Collar with Beacons */}
+      <mesh material={mats.silver} position={[0, 0, -18.2]}>
+        <torusGeometry args={[1.5, 0.18, 16, 48]} />
+      </mesh>
+      <mesh material={amberBeaconMat} position={[0, 1.6, -18.2]}>
+        <sphereGeometry args={[0.1, 8, 8]} />
+      </mesh>
+      <mesh material={amberBeaconMat} position={[0, -1.6, -18.2]}>
+        <sphereGeometry args={[0.1, 8, 8]} />
+      </mesh>
+
+      {/* Forward Smooth Logistics Module */}
+      <mesh material={mats.titanium} position={[0, 0, 16.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[3.2, 4.5, 5, 64]} />
+      </mesh>
+
+      {/* Forward Docking Extension Collar */}
+      <mesh material={mats.whiteChassis} position={[0, 0, 20.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[2.5, 3.2, 3.5, 64]} />
       </mesh>
 
       {/* Docking Collar Bay (Where Reviver docks and refuels) */}
       <group position={MOTHERCRAFT_DOCK_PORT.toArray()}>
         <mesh material={mats.silver}>
-          <torusGeometry args={[2.4, 0.28, 16, 32]} />
+          <torusGeometry args={[2.4, 0.28, 16, 64]} />
         </mesh>
         {/* Docking Corridor Beacon Lights */}
         {[0, 1, 2, 3, 4, 5].map((i) => {
@@ -679,7 +738,7 @@ export function Mothercraft() {
       {/* Rotating Centrifuge Habitat Ring */}
       <group position={[0, 0, 0]} ref={ringRef}>
         <mesh material={mats.silver}>
-          <torusGeometry args={[11, 0.7, 16, 48]} />
+          <torusGeometry args={[11, 0.75, 24, 64]} />
         </mesh>
         {/* Radial support spokes */}
         {[0, 1, 2, 3].map((i) => {
@@ -696,7 +755,7 @@ export function Mothercraft() {
       {[-2.8, 2.8].map((x, idx) => (
         <group key={idx} position={[x, 0, -6]}>
           <mesh material={mats.gold} rotation={[Math.PI / 2, 0, 0]}>
-            <capsuleGeometry args={[1.3, 7, 8, 16]} />
+            <capsuleGeometry args={[1.3, 7, 16, 32]} />
           </mesh>
         </group>
       ))}
@@ -716,10 +775,10 @@ export function Mothercraft() {
       {/* High-Gain Communications Dish */}
       <group position={[0, 5.8, 4]} rotation={[-0.4, 0, 0]}>
         <mesh material={mats.titanium}>
-          <cylinderGeometry args={[0.08, 0.08, 1.8, 8]} />
+          <cylinderGeometry args={[0.08, 0.08, 1.8, 16]} />
         </mesh>
         <mesh material={mats.silver} position={[0, 0.9, 0]} rotation={[Math.PI, 0, 0]}>
-          <sphereGeometry args={[1.8, 24, 16, 0, Math.PI * 2, 0, Math.PI / 3]} />
+          <sphereGeometry args={[1.8, 32, 24, 0, Math.PI * 2, 0, Math.PI / 3]} />
         </mesh>
       </group>
     </group>
