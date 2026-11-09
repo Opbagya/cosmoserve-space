@@ -151,19 +151,22 @@ export function SimLoop() {
         audio.voice("Docking confirmed. Rapid refueling complete.");
       }
 
-      // --- 3D ROTATIONAL ATTITUDE (W, A, S, D) ---
+      // --- 3D ROTATIONAL ATTITUDE & STEERING ---
       // Pitch: W = Nose Down (-1), S = Nose Up (+1)
       currentEuler.current.x = Math.max(
         -1.35,
-        Math.min(1.35, currentEuler.current.x + ax.pitch * ROT_ACCEL * dt),
+        Math.min(1.35, currentEuler.current.x - ax.pitch * ROT_ACCEL * dt),
       );
 
-      // Yaw: A = Turn Left (-1), D = Turn Right (+1)
-      currentEuler.current.y -= ax.yaw * ROT_ACCEL * dt;
+      // Yaw: ArrowLeft / A = Turn Left (-1), ArrowRight / D = Turn Right (+1)
+      currentEuler.current.y += ax.steer * ROT_ACCEL * dt;
 
-      // Roll: Natural banking into the turn (A/D)
-      const targetRoll = -ax.yaw * 0.45;
+      // Roll: Natural banking into the turn (Left = +Z wing-down, Right = -Z wing-down)
+      const targetRoll = -ax.steer * 0.45;
       currentEuler.current.z += (targetRoll - currentEuler.current.z) * (1 - Math.exp(-6.5 * dt));
+      if (Math.abs(ax.roll) > 0.1) {
+        currentEuler.current.z -= ax.roll * ROT_ACCEL * dt;
+      }
 
       // RCS Rotational Damper (toggled by X)
       if (sim.damp && Math.abs(ax.pitch) < 0.05) {
@@ -184,9 +187,9 @@ export function SimLoop() {
 
       // Forward vector in craft's facing direction
       const fwd = T1.set(0, 0, 1).applyQuaternion(sim.quat);
-      // Lateral strafe vector
+      // Lateral strafe vector (starboard +X)
       const right = T3.set(1, 0, 0).applyQuaternion(sim.quat);
-      const strafeSpeed = ax.strafe * (TRANS_ACCEL * 0.55);
+      const strafeSpeed = ax.steer * (TRANS_ACCEL * 0.35);
 
       const targetVel = T2.copy(fwd)
         .multiplyScalar(hasFuel ? targetSpeed : 0)
@@ -194,12 +197,12 @@ export function SimLoop() {
 
       sim.thrustWorld.copy(fwd).multiplyScalar(ax.forward);
       sim.thrustAmount = sim.boosting ? 1.0 : ax.forward;
-      sim.steerAmount = ax.yaw;
-      sim.swayAmount = ax.strafe;
+      sim.steerAmount = ax.steer;
+      sim.swayAmount = ax.steer;
       sim.heaveAmount = -ax.pitch;
 
       const hasThrustInput =
-        Math.abs(ax.forward) > 0.05 || Math.abs(ax.strafe) > 0.05 || sim.boosting;
+        Math.abs(ax.forward) > 0.05 || Math.abs(ax.steer) > 0.05 || sim.boosting;
 
       // Snappy arcade acceleration toward heading
       if (hasThrustInput && hasFuel) {

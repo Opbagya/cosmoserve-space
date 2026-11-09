@@ -1,12 +1,11 @@
 export interface Axes {
   // Regular movement (Arrow keys)
   forward: number; // ArrowUp (+1 forward) / ArrowDown (-1 back/brake)
-  strafe: number;  // ArrowRight (+1 right) / ArrowLeft (-1 left)
+  steer: number;   // ArrowRight (+1 turn right) / ArrowLeft (-1 turn left) (also D / A)
 
   // 3D Rotational attitude (W, A, S, D)
   pitch: number;   // W (-1 nose down) / S (+1 nose up)
-  yaw: number;     // D (+1 yaw right) / A (-1 yaw left)
-  roll: number;    // D (+1 bank right) / A (-1 bank left) (plus Q/E)
+  roll: number;    // Q (-1) / E (+1)
 
   nitro: boolean;  // Shift (Nitro turbo boost)
   action: boolean; // Space / Enter (Launch / Undock / De-orbit)
@@ -68,9 +67,8 @@ export function attachKeyboard(onSpecial?: KeyHandler) {
 
 export function readAxes(): Axes {
   let forward = 0;
-  let strafe = 0;
+  let steer = 0;
   let pitch = 0;
-  let yaw = 0;
   let roll = 0;
   let nitro = false;
   let action = false;
@@ -80,9 +78,9 @@ export function readAxes(): Axes {
   if (keys.has("ArrowUp")) forward += 1;
   if (keys.has("ArrowDown")) forward -= 1;
 
-  // ArrowLeft / ArrowRight: Lateral strafe / steer
-  if (keys.has("ArrowLeft")) strafe -= 1;
-  if (keys.has("ArrowRight")) strafe += 1;
+  // ArrowLeft: Turn Left (-1) / ArrowRight: Turn Right (+1)
+  if (keys.has("ArrowLeft")) steer -= 1;
+  if (keys.has("ArrowRight")) steer += 1;
 
   // 2. 3D FLIGHT ATTITUDE: W, A, S, D
   // W: Pitch down / nose forward (-1)
@@ -90,18 +88,11 @@ export function readAxes(): Axes {
   if (keys.has("KeyW")) pitch -= 1;
   if (keys.has("KeyS")) pitch += 1;
 
-  // A: Yaw left (-1) & bank roll left (-1)
-  // D: Yaw right (+1) & bank roll right (+1)
-  if (keys.has("KeyA")) {
-    yaw -= 1;
-    roll -= 1;
-  }
-  if (keys.has("KeyD")) {
-    yaw += 1;
-    roll += 1;
-  }
+  // A: Turn Left (-1) / D: Turn Right (+1)
+  if (keys.has("KeyA")) steer -= 1;
+  if (keys.has("KeyD")) steer += 1;
 
-  // Pure Roll support with Q / E
+  // Dedicated Roll keys: Q / E
   if (keys.has("KeyQ")) roll -= 1;
   if (keys.has("KeyE")) roll += 1;
 
@@ -113,19 +104,14 @@ export function readAxes(): Axes {
 
   // 5. Touch / Virtual Stick overrides (Mobile)
   if (Math.abs(touch.thrust) > 0.05) forward = touch.thrust;
-  if (Math.abs(touch.steer) > 0.05) {
-    yaw = touch.steer;
-    strafe = touch.steer;
-    roll = touch.steer;
-  }
+  if (Math.abs(touch.steer) > 0.05) steer = touch.steer;
   if (Math.abs(touch.pitch) > 0.05) pitch = touch.pitch;
   if (touch.boost) nitro = true;
 
   forward = Math.max(-1, Math.min(1, forward));
-  strafe = Math.max(-1, Math.min(1, strafe));
+  steer = Math.max(-1, Math.min(1, steer));
   pitch = Math.max(-1, Math.min(1, pitch));
-  yaw = Math.max(-1, Math.min(1, yaw));
   roll = Math.max(-1, Math.min(1, roll));
 
-  return { forward, strafe, pitch, yaw, roll, nitro, action };
+  return { forward, steer, pitch, roll, nitro, action };
 }
