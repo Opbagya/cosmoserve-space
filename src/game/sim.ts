@@ -157,6 +157,10 @@ export const sim = {
   sensitivity: 1.0,   // Control rate multiplier (0.5x to 2.0x)
   particlesHigh: true,// Enhanced thruster vapor and particles
 
+  // Briefing Camera Mode (Reversible: Satellite Orbit View or Mothership Base View)
+  briefingViewMode: "satellite" as "satellite" | "mothership",
+  briefingTargetSatId: "deb-2" as string,
+
   // Mothercraft & Docking
   mothercraftPos: new THREE.Vector3(0, 0, 0),
   mothercraftQuat: new THREE.Quaternion(),
@@ -262,6 +266,11 @@ export function resetSim() {
     fuelBonus: 0,
     timeBonus: 0,
   };
+}
+
+export function setBriefingViewMode(mode: "satellite" | "mothership", satId?: string) {
+  sim.briefingViewMode = mode;
+  if (satId) sim.briefingTargetSatId = satId;
 }
 
 /** Undock from Mothercraft - cleanly moves player forward and starts flight */

@@ -158,17 +158,17 @@ export function SimLoop() {
       // Pitch: W = Nose Down (-1), S = Nose Up (+1)
       currentEuler.current.x = Math.max(
         -1.35,
-        Math.min(1.35, currentEuler.current.x + ax.pitch * pitchSign * ROT_ACCEL * sens * dt),
+        Math.min(1.35, currentEuler.current.x - ax.pitch * pitchSign * ROT_ACCEL * sens * dt),
       );
 
-      // Yaw: A / ArrowLeft = Left (-1), D / ArrowRight = Right (+1)
-      currentEuler.current.y += ax.yaw * ROT_ACCEL * sens * dt;
+      // Yaw: A / ArrowLeft = Turn Left (-1), D / ArrowRight = Turn Right (+1)
+      currentEuler.current.y -= ax.yaw * ROT_ACCEL * sens * dt;
 
       // Roll: Natural banking into turn + manual Q/E
-      const targetRoll = -ax.yaw * 0.4;
+      const targetRoll = ax.yaw * 0.4;
       currentEuler.current.z += (targetRoll - currentEuler.current.z) * (1 - Math.exp(-6.5 * dt));
       if (Math.abs(ax.roll) > 0.1) {
-        currentEuler.current.z -= ax.roll * ROT_ACCEL * sens * dt;
+        currentEuler.current.z += ax.roll * ROT_ACCEL * sens * dt;
       }
 
       // RCS Rotational Damper (toggled by X)
@@ -182,9 +182,9 @@ export function SimLoop() {
       sim.boosting = ax.boost && hasFuel;
       const speed = sim.boosting ? BOOST_ACCEL : TRANS_ACCEL;
 
-      // Forward (+Z in craft frame), Lateral (+X starboard), Vertical (+Y dorsal)
+      // Forward (+Z in craft frame), Lateral (Starboard screen right), Vertical (+Y dorsal)
       const fwd = T1.set(0, 0, 1).applyQuaternion(sim.quat);
-      const right = T3.set(1, 0, 0).applyQuaternion(sim.quat);
+      const right = T3.set(-1, 0, 0).applyQuaternion(sim.quat);
       const up = new THREE.Vector3(0, 1, 0).applyQuaternion(sim.quat);
 
       const targetVel = T2.set(0, 0, 0)
@@ -274,14 +274,36 @@ export function SimLoop() {
       let targetLook: THREE.Vector3;
 
       if (sim.screen === "briefing") {
-        // Slow cinematic orbit around Reviver craft, Mothercraft, and nearby tumbling satellites
-        const time = state.clock.getElapsedTime() * 0.12;
-        targetCamPos = T2.set(
-          Math.sin(time) * 16.0 + 9.0,
-          4.8 + Math.cos(time * 0.7) * 1.5,
-          24.0 + Math.cos(time) * 16.0,
-        );
-        targetLook = T3.set(4.0, 0.5, 35.0);
+        if (sim.briefingViewMode === "satellite") {
+          // Dramatic high-definition orbital tracking of the targeted defunct satellite
+          const targetDeb =
+            sim.debris.find((d) => d.id === sim.briefingTargetSatId) ||
+            sim.debris[1] ||
+            sim.debris[0];
+
+          if (targetDeb) {
+            const time = state.clock.getElapsedTime() * 0.22;
+            const dist = targetDeb.radius * 2.8 + 6.0;
+            targetCamPos = T2.set(
+              targetDeb.pos.x + Math.sin(time) * dist,
+              targetDeb.pos.y + Math.sin(time * 0.7) * 2.4 + 1.2,
+              targetDeb.pos.z + Math.cos(time) * dist,
+            );
+            targetLook = T3.copy(targetDeb.pos);
+          } else {
+            targetCamPos = T2.set(8.5, 6.2, 36.0);
+            targetLook = T3.set(0, 0, 24.0);
+          }
+        } else {
+          // Classic Mothercraft Depot & docked Reviver base view
+          const time = state.clock.getElapsedTime() * 0.12;
+          targetCamPos = T2.set(
+            Math.sin(time) * 16.0 + 9.0,
+            4.8 + Math.cos(time * 0.7) * 1.5,
+            24.0 + Math.cos(time) * 16.0,
+          );
+          targetLook = T3.set(4.0, 0.5, 35.0);
+        }
       } else if (sim.docked) {
         targetCamPos = T2.set(8.5, 6.2, 36.0);
         targetLook = T3.set(0, 0, 24.0);

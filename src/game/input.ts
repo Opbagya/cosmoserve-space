@@ -105,8 +105,8 @@ export function readAxes(): Axes {
   const rev = k("ArrowDown") + k("ControlLeft") + k("ControlRight");
   const surge = clamp(fwd - rev + touch.thrust);
 
-  // 2. SWAY (Strafe Left / Right): ArrowLeft / ArrowRight
-  const sway = clamp(k("ArrowRight") - k("ArrowLeft") + touch.steer);
+  // 2. SWAY (Strafe Left / Right): A / ArrowLeft (-1) vs D / ArrowRight (+1)
+  const sway = clamp(k("ArrowRight") + k("KeyD") - (k("ArrowLeft") + k("KeyA")) + touch.steer);
 
   // 3. HEAVE (Up / Down): Space (+1) / C (-1)
   const heave = clamp(k("Space") - k("KeyC"));

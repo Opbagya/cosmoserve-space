@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { setBriefingViewMode, sim } from "./sim";
 import {
   ArrowRight,
   Compass,
@@ -61,6 +62,18 @@ const SATELLITE_TARGETS = [
 export function LandingPage({ onStart }: LandingPageProps) {
   const [controlsOpen, setControlsOpen] = useState(false);
   const [selectedSat, setSelectedSat] = useState(0);
+  const [viewMode, setViewMode] = useState<"satellite" | "mothership">(sim.briefingViewMode || "satellite");
+
+  const handleToggleView = (mode: "satellite" | "mothership") => {
+    setViewMode(mode);
+    setBriefingViewMode(mode, SATELLITE_TARGETS[selectedSat]?.id);
+  };
+
+  const handleSelectSat = (idx: number) => {
+    setSelectedSat(idx);
+    setViewMode("satellite");
+    setBriefingViewMode("satellite", SATELLITE_TARGETS[idx]?.id);
+  };
 
   return (
     <div className="fixed inset-0 z-30 flex flex-col justify-between p-6 md:p-12 font-hud text-zinc-100 select-none overflow-y-auto pointer-events-auto">
@@ -183,12 +196,37 @@ export function LandingPage({ onStart }: LandingPageProps) {
 
         {/* Right Column: Satellites with Motion Effects & Radar Scanning */}
         <div className="lg:col-span-5 flex flex-col gap-3">
-          <div className="flex items-center justify-between px-1 text-xs font-mono-tech tracking-wider text-zinc-400">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs font-mono-tech tracking-wider text-zinc-400">
             <span className="flex items-center gap-2">
               <Radio size={12} className="text-emerald-400 animate-pulse" />
-              <span>ORBITAL TARGETS IN RANGE</span>
+              <span>ORBITAL RADAR TARGETS</span>
             </span>
-            <span className="text-[10px] text-zinc-500">LIVE SENSOR RADAR</span>
+
+            {/* Reversible 3D View Switcher */}
+            <div className="flex items-center rounded-lg bg-black/70 p-0.5 border border-white/10 backdrop-blur-md">
+              <button
+                onClick={() => handleToggleView("satellite")}
+                className={`px-2.5 py-1 rounded text-[10px] font-mono-tech transition ${
+                  viewMode === "satellite"
+                    ? "bg-emerald-500/25 text-emerald-300 font-bold border border-emerald-500/40 shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+                title="Cinematic orbital tracking of targeted space debris"
+              >
+                🛰️ Satellite View
+              </button>
+              <button
+                onClick={() => handleToggleView("mothership")}
+                className={`px-2.5 py-1 rounded text-[10px] font-mono-tech transition ${
+                  viewMode === "mothership"
+                    ? "bg-cyan-500/25 text-cyan-300 font-bold border border-cyan-500/40 shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+                title="Return to orbital Mothercraft depot & Reviver base"
+              >
+                🛸 Mothership Base
+              </button>
+            </div>
           </div>
 
           {/* Floating Motion Satellite Cards */}
@@ -198,7 +236,7 @@ export function LandingPage({ onStart }: LandingPageProps) {
               return (
                 <div
                   key={sat.id}
-                  onClick={() => setSelectedSat(idx)}
+                  onClick={() => handleSelectSat(idx)}
                   className={`relative overflow-hidden rounded-xl border backdrop-blur-md p-4 transition-all duration-300 cursor-pointer ${
                     sat.motionClass
                   } ${
@@ -239,7 +277,13 @@ export function LandingPage({ onStart }: LandingPageProps) {
                   <div className="mt-3 flex items-center justify-between border-t border-white/[0.06] pt-2 text-[10px] font-mono-tech text-zinc-400">
                     <span>ALT: {sat.alt}</span>
                     <span>TUMBLE: {sat.spin}</span>
-                    <span className="text-emerald-400">SOFT-ROBOTIC READY</span>
+                    {isSelected && viewMode === "satellite" ? (
+                      <span className="text-emerald-300 font-bold flex items-center gap-1 animate-pulse">
+                        ● 3D CAMERA TRACKING
+                      </span>
+                    ) : (
+                      <span className="text-emerald-400">SOFT-ROBOTIC READY</span>
+                    )}
                   </div>
                 </div>
               );
