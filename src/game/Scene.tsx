@@ -1,9 +1,10 @@
+import { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Stars } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { SUN_DIR } from "./sim";
-import { Earth, ReentryCorridorMarker } from "./Earth";
+import { Earth, EarthFallback, ReentryCorridorMarker } from "./Earth";
 import { DebrisField, Mothercraft, Reviver } from "./Models";
 import { FlightEffects } from "./FlightEffects";
 import { SimLoop } from "./SimLoop";
@@ -68,7 +69,9 @@ export function SpaceScene() {
         <ambientLight intensity={0.45} color="#94a8c7" />
 
         {/* Photorealistic Earth with Custom Atmospheric Shader */}
-        <Earth />
+        <Suspense fallback={<EarthFallback />}>
+          <Earth />
+        </Suspense>
 
         {/* Atmospheric Reentry Disposal Gate Interface */}
         <ReentryCorridorMarker />

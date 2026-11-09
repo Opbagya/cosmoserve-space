@@ -15,6 +15,20 @@ import earthLights from "@/assets/earth_lights_2048.png";
 import earthClouds from "@/assets/earth_clouds_1024.png";
 import earthSpecular from "@/assets/earth_specular_2048.jpg";
 
+// Preload heavy planetary textures immediately
+useTexture.preload([earthAtmos, earthLights, earthClouds, earthSpecular]);
+
+export function EarthFallback() {
+  return (
+    <group position={[0, -EARTH_RADIUS * 0.96, 0]}>
+      <mesh>
+        <sphereGeometry args={[EARTH_RADIUS, 32, 24]} />
+        <meshStandardMaterial color="#0a2238" roughness={0.7} />
+      </mesh>
+    </group>
+  );
+}
+
 const earthVert = /* glsl */ `
 varying vec2 vUv;
 varying vec3 vN;

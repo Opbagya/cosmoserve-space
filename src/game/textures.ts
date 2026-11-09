@@ -28,7 +28,7 @@ export function getFoil(tint: "gold" | "silver" | "dark") {
     bg.fillStyle = "#808080";
     bg.fillRect(0, 0, S, S);
 
-    for (let i = 0; i < 1500; i++) {
+    for (let i = 0; i < 220; i++) {
       const x = Math.random() * S;
       const y = Math.random() * S;
       const r = 8 + Math.random() * 36;

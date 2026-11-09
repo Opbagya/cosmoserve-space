@@ -73,6 +73,13 @@ export function Game() {
 
     return attachKeyboard((code) => {
       if (code === "KeyP" || code === "Escape") togglePause();
+
+      // Instant retry from Mission Failed screen
+      if (sim.screen === "failed" && (code === "KeyR" || code === "Enter" || code === "Space")) {
+        startMission();
+        return;
+      }
+
       if (sim.screen !== "playing") return;
 
       // Cycle Camera View (V)
@@ -278,6 +285,53 @@ export function Game() {
                   FLY SORTIE AGAIN
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mission Failed Screen (Prevents game from getting stuck!) */}
+      {s === "failed" && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-2xl p-4 sm:p-6 font-hud select-none">
+          <div className="relative w-full max-w-lg rounded-2xl border border-red-500/30 bg-[#0b0c10]/95 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl space-y-4">
+            <div className="flex items-center gap-2 text-[11px] font-mono-tech tracking-[0.25em] text-red-400 uppercase">
+              <span className="h-2 w-2 rounded-full bg-red-500 animate-ping" />
+              <span>SORTIE COMPROMISED</span>
+              <span className="text-zinc-600">•</span>
+              <span>MISSION FAILED</span>
+            </div>
+
+            <h2 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">
+              HULL INTEGRITY BREACHED
+            </h2>
+
+            <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed font-sans font-light">
+              {sim.failReason || "Spacecraft sustained catastrophic orbital impact. In Low Earth Orbit, high-velocity collisions fracture spacecraft chassis without soft-robotic paddle deployment."}
+            </p>
+
+            <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3 text-xs font-mono-tech text-zinc-300">
+              <span className="text-emerald-400 font-bold">ADR Flight Protocol:</span> Deploy soft-robotic capture paddles with <span className="text-white font-bold bg-white/10 px-1.5 py-0.5 rounded border border-white/20">[F]</span> before touching target. Compliant paddles safely absorb contact and secure the debris.
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-white/[0.08] pt-5">
+              <button
+                onClick={() => {
+                  returnToMainMenu();
+                  audio.stopMusic();
+                  setRun((r) => r + 1);
+                }}
+                className="w-full sm:w-auto rounded-full border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] px-5 py-2.5 text-xs font-mono-tech text-zinc-300 transition"
+              >
+                Return to homepage
+              </button>
+
+              <button
+                onClick={startMission}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-full bg-white hover:bg-zinc-100 px-6 py-2.5 text-xs font-bold text-zinc-950 transition shadow-lg active:scale-95"
+              >
+                <RotateCcw size={14} />
+                <span>Retry sortie (Space / R)</span>
+              </button>
             </div>
           </div>
         </div>

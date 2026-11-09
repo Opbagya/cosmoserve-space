@@ -291,8 +291,9 @@ export function SimLoop() {
 
       if (closestDeb) {
         sim.captureTargetId = closestDeb.id;
-        const captureThreshold = closestDeb.radius + 3.8;   // Safe soft-robotic capture envelope (~5.5-7m)
-        const collisionThreshold = closestDeb.radius + 1.6; // Rigid hull physical contact (~3.5-5m)
+        const captureThreshold = 14.0;         // Comfortable rendezvous window to deploy paddles (<14m)
+        const paddleGrappleReach = 4.2;        // Extended paddle capture envelope
+        const physicalHullContact = 1.85;      // True physical hull-to-hull contact (eliminates premature collision!)
 
         sim.canCapture = closestDist <= captureThreshold;
 
@@ -303,33 +304,39 @@ export function SimLoop() {
         sim.dockingRadar.range = closestDist;
         sim.dockingRadar.relSpeed = relSpeed;
         sim.dockingRadar.inEnvelope = sim.canCapture;
-        sim.dockingRadar.collisionHazard = closestDist <= collisionThreshold;
+        sim.dockingRadar.collisionHazard = closestDist <= 3.5 && sim.captureArmState <= 0.05;
 
         // Relative lateral offset for docking display
         const toDebrisLocal = closestDeb.pos.clone().sub(sim.pos).applyQuaternion(sim.quat.clone().invert());
         sim.dockingRadar.alignPct = Math.max(0, Math.min(100, (1 - Math.hypot(toDebrisLocal.x, toDebrisLocal.y) / 12) * 100));
 
-        // COLLISION HAZARD CHECK:
-        // In space, touching debris with rigid hull fractures spacecraft.
-        // BUT if compliant soft-robotic paddles are open/capturing (captureArmState > 0.4),
-        // the silicone/urethane paddles absorb the contact safely and cradle the satellite!
-        if (closestDist <= collisionThreshold) {
-          if (sim.captureArmState > 0.4) {
-            // Compliant soft robotic paddles securely grab target
-            if (!closestDeb.captured) {
-              closestDeb.captured = true;
-              sim.capturedDebrisId = closestDeb.id;
-              sim.flashMessage = `SOFT-ROBOTIC CLAMP SECURED: ${closestDeb.name.toUpperCase()} · FERRY TO DISPOSAL ZONE`;
-              sim.flashTimer = 4.0;
-              audio.grappleLock();
-              audio.voice("Debris secured in soft robotic cradle. De-orbit burn ready.");
-            }
-          } else {
-            // Un-cushioned rigid hull collision!
+        // SOFT-ROBOTIC CAPTURE VS PHYSICAL COLLISION:
+        // 1. If paddles are deployed (F key / captureArmState > 0.05):
+        //    Paddles safely grasp the debris as soon as Reviver enters grapple reach (<= 4.2m).
+        if (sim.captureArmState > 0.05 && closestDist <= paddleGrappleReach) {
+          if (!closestDeb.captured) {
+            closestDeb.captured = true;
+            sim.capturedDebrisId = closestDeb.id;
+            sim.flashMessage = `SOFT-ROBOTIC CLAMP SECURED: ${closestDeb.name.toUpperCase()} · FERRY TO DISPOSAL ZONE`;
+            sim.flashTimer = 4.0;
+            audio.grappleLock();
+            audio.voice("Debris secured in soft robotic cradle. De-orbit burn ready.");
+          }
+        } else if (closestDist <= physicalHullContact) {
+          // 2. Paddles NOT deployed and craft actually touches the satellite hull (<= 1.85m):
+          if (relSpeed > 3.0) {
+            // High-velocity orbital collision breaches hull
             sim.screen = "failed";
-            sim.failReason = `ORBITAL COLLISION HAZARD: High-velocity hull impact with ${closestDeb.name}. Spacecraft pressurized chassis compromised without soft-robotic paddle deployment.`;
+            sim.failReason = `ORBITAL COLLISION HAZARD: High-velocity impact (${relSpeed.toFixed(1)} m/s) with ${closestDeb.name}. Hull compromised without soft-robotic paddle deployment.`;
             audio.thud(40, 0.7, 1.0);
             audio.voice("Critical warning. Hull breach detected. Mission failure.");
+          } else {
+            // Low-velocity gentle contact: deflect craft safely and prompt user to deploy paddles
+            sim.vel.multiplyScalar(-0.4);
+            sim.pos.addScaledVector(sim.vel, dt * 2);
+            sim.flashMessage = "PROXIMITY WARNING · DEPLOY PADDLES [F] TO SECURE TARGET";
+            sim.flashTimer = 2.0;
+            audio.thud(70, 0.2, 0.4);
           }
         }
       } else {
