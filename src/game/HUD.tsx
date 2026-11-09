@@ -245,7 +245,7 @@ export function HUD() {
             >
               <span>CAPTURE</span>
               <span className="rounded bg-black/15 px-1.5 py-0.5 text-[10px] font-mono-tech text-zinc-800">
-                ⌘ CMD / ALT / C
+                [E / CLICK]
               </span>
             </button>
           </div>
@@ -329,7 +329,7 @@ export function HUD() {
 
           <div className="flex items-center justify-between text-[9px] font-mono-tech text-zinc-500">
             <span>0%</span>
-            <span>W/S: THROTTLE · A/D: STEER · ⌘ CMD / ALT: CAPTURE · SPACE: BOOST</span>
+            <span>R/F: FWD/REV · W/S: PITCH · A/D: YAW · Q/E: ROLL · J/L: SWAY · SPACE/C: HEAVE · E: CAPTURE · X: DAMP</span>
             <span>100% (RAPID RECHARGE)</span>
           </div>
         </div>
@@ -341,14 +341,14 @@ export function HUD() {
               onClick={undock}
               className="rounded bg-white hover:bg-zinc-200 text-black font-bold px-4 py-2 text-xs tracking-wider transition active:scale-95 shadow-md"
             >
-              LAUNCH [W]
+              LAUNCH [SPACE / R]
             </button>
           ) : sim.capturedDebrisId ? (
             <button
               onClick={() => releaseCapturedDebris(sim.inReentryCorridor)}
               className="rounded bg-zinc-200 hover:bg-white text-zinc-950 font-bold px-4 py-2 text-xs tracking-wider transition active:scale-95"
             >
-              {sim.inReentryCorridor ? "DE-ORBIT [SPACE]" : "RELEASE [CMD/ALT]"}
+              {sim.inReentryCorridor ? "DE-ORBIT [SPACE]" : "RELEASE [E]"}
             </button>
           ) : (
             <button
@@ -361,7 +361,7 @@ export function HUD() {
               }`}
             >
               <span>CAPTURE</span>
-              <span className="text-[10px] opacity-75">[CMD/ALT]</span>
+              <span className="text-[10px] opacity-75">[E]</span>
             </button>
           )}
         </div>
@@ -370,14 +370,17 @@ export function HUD() {
   );
 }
 
-/** Simple, intuitive virtual touch controls for mobile */
+/** 6-DOF virtual touch controls for mobile matching the flight matrix */
 export function TouchControls() {
-  const stickRef = useRef<HTMLDivElement>(null);
-  const [knob, setKnob] = useState({ x: 0, y: 0 });
+  const leftStickRef = useRef<HTMLDivElement>(null);
+  const rightStickRef = useRef<HTMLDivElement>(null);
+  const [leftKnob, setLeftKnob] = useState({ x: 0, y: 0 });
+  const [rightKnob, setRightKnob] = useState({ x: 0, y: 0 });
 
-  const handlePointer = (e: React.PointerEvent) => {
-    if (!stickRef.current) return;
-    const r = stickRef.current.getBoundingClientRect();
+  // Left Stick: Vertical = Forward / Retrograde (R/F), Horizontal = Sway (J/L)
+  const handleLeftPointer = (e: React.PointerEvent) => {
+    if (!leftStickRef.current) return;
+    const r = leftStickRef.current.getBoundingClientRect();
     let x = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
     let y = -(e.clientY - (r.top + r.height / 2)) / (r.height / 2);
     const len = Math.hypot(x, y);
@@ -385,78 +388,165 @@ export function TouchControls() {
       x /= len;
       y /= len;
     }
-    setKnob({ x, y });
-    touch.steer = x;
-    touch.thrust = y;
+    setLeftKnob({ x, y });
+    touch.sway = x;
+    touch.forward = y;
   };
 
-  const endPointer = () => {
-    setKnob({ x: 0, y: 0 });
-    touch.steer = 0;
-    touch.thrust = 0;
+  const endLeftPointer = () => {
+    setLeftKnob({ x: 0, y: 0 });
+    touch.sway = 0;
+    touch.forward = 0;
+  };
+
+  // Right Stick: Vertical = Pitch (W/S), Horizontal = Yaw (A/D)
+  const handleRightPointer = (e: React.PointerEvent) => {
+    if (!rightStickRef.current) return;
+    const r = rightStickRef.current.getBoundingClientRect();
+    let x = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
+    let y = -(e.clientY - (r.top + r.height / 2)) / (r.height / 2);
+    const len = Math.hypot(x, y);
+    if (len > 1) {
+      x /= len;
+      y /= len;
+    }
+    setRightKnob({ x, y });
+    touch.yaw = x;
+    touch.pitch = -y; // Up pushes nose down
+  };
+
+  const endRightPointer = () => {
+    setRightKnob({ x: 0, y: 0 });
+    touch.yaw = 0;
+    touch.pitch = 0;
   };
 
   return (
-    <div className="fixed inset-x-0 bottom-24 z-30 flex items-end justify-between px-6 pointer-events-none sm:hidden">
-      {/* Flight Control Stick: Up/Down for Throttle, Left/Right for Steer */}
+    <div className="fixed inset-x-0 bottom-24 z-30 flex items-end justify-between px-4 sm:px-6 pointer-events-none sm:hidden">
+      {/* Left Stick: Forward / Retrograde (Vertical) & Sway Left / Right (Horizontal) */}
       <div className="pointer-events-auto flex flex-col items-center gap-1">
         <div
-          ref={stickRef}
-          className="relative h-28 w-28 touch-none rounded-full border border-white/20 bg-black/60 backdrop-blur-md"
+          ref={leftStickRef}
+          className="relative h-26 w-26 touch-none rounded-full border border-white/20 bg-black/60 backdrop-blur-md"
           onPointerDown={(e) => {
             (e.target as HTMLElement).setPointerCapture(e.pointerId);
-            handlePointer(e);
+            handleLeftPointer(e);
           }}
-          onPointerMove={(e) => e.buttons && handlePointer(e)}
-          onPointerUp={endPointer}
-          onPointerCancel={endPointer}
+          onPointerMove={(e) => e.buttons && handleLeftPointer(e)}
+          onPointerUp={endLeftPointer}
+          onPointerCancel={endLeftPointer}
         >
           <div
             className="absolute h-9 w-9 rounded-full bg-white/40 border border-white/60"
             style={{
-              left: `calc(50% + ${knob.x * 35}px - 18px)`,
-              top: `calc(50% - ${knob.y * 35}px - 18px)`,
+              left: `calc(50% + ${leftKnob.x * 32}px - 18px)`,
+              top: `calc(50% - ${leftKnob.y * 32}px - 18px)`,
             }}
           />
         </div>
-        <span className="text-[10px] font-mono-tech tracking-wider text-zinc-400">
-          THROTTLE / STEER
+        <span className="text-[9px] font-mono-tech tracking-wider text-zinc-400">
+          FWD/REV · SWAY
         </span>
       </div>
 
-      {/* Right Side Action Buttons */}
-      <div className="pointer-events-auto flex flex-col gap-2.5">
-        <button
-          onPointerDown={() => (touch.boost = true)}
-          onPointerUp={() => (touch.boost = false)}
-          className="h-12 w-14 rounded-md border border-white/20 bg-black/60 text-xs font-mono-tech font-bold text-zinc-200 active:bg-white active:text-black transition"
-        >
-          BOOST
-        </button>
+      {/* Center 6-DOF Touch Buttons: Roll (Q/E) & Heave (Up/Down) */}
+      <div className="pointer-events-auto flex items-center gap-1.5 mb-1">
+        <div className="flex flex-col gap-1">
+          <button
+            onPointerDown={() => (touch.roll = -1)}
+            onPointerUp={() => (touch.roll = 0)}
+            className="h-8 w-9 rounded border border-white/15 bg-black/60 text-[10px] font-mono-tech font-bold text-zinc-300 active:bg-white active:text-black"
+          >
+            Q ↺
+          </button>
+          <button
+            onPointerDown={() => (touch.roll = 1)}
+            onPointerUp={() => (touch.roll = 0)}
+            className="h-8 w-9 rounded border border-white/15 bg-black/60 text-[10px] font-mono-tech font-bold text-zinc-300 active:bg-white active:text-black"
+          >
+            E ↻
+          </button>
+        </div>
 
-        {sim.docked ? (
+        <div className="flex flex-col gap-1">
           <button
-            onClick={undock}
-            className="h-12 w-14 rounded-md bg-white text-black text-xs font-mono-tech font-bold active:scale-95 transition shadow-lg"
+            onPointerDown={() => (touch.heave = 1)}
+            onPointerUp={() => (touch.heave = 0)}
+            className="h-8 w-9 rounded border border-white/15 bg-black/60 text-[10px] font-mono-tech font-bold text-zinc-300 active:bg-white active:text-black"
           >
-            LAUNCH
+            ▲ UP
           </button>
-        ) : (
           <button
-            onClick={sim.inReentryCorridor ? () => releaseCapturedDebris(true) : triggerCapture}
-            className={`h-12 w-14 rounded-md text-xs font-mono-tech font-bold active:scale-95 transition shadow-lg ${
-              sim.inReentryCorridor
-                ? "bg-amber-400 text-black"
-                : sim.capturedDebrisId
-                ? "bg-zinc-200 text-black"
-                : sim.canCapture
-                ? "bg-white text-black animate-pulse"
-                : "bg-zinc-800 text-zinc-400 border border-white/20"
-            }`}
+            onPointerDown={() => (touch.heave = -1)}
+            onPointerUp={() => (touch.heave = 0)}
+            className="h-8 w-9 rounded border border-white/15 bg-black/60 text-[10px] font-mono-tech font-bold text-zinc-300 active:bg-white active:text-black"
           >
-            {sim.inReentryCorridor ? "DEORBIT" : sim.capturedDebrisId ? "RELEASE" : "GRAPPLE"}
+            ▼ DN
           </button>
-        )}
+        </div>
+      </div>
+
+      {/* Right Stick: Pitch (Vertical) & Yaw (Horizontal) + Actions */}
+      <div className="pointer-events-auto flex items-end gap-2">
+        <div className="flex flex-col items-center gap-1">
+          <div
+            ref={rightStickRef}
+            className="relative h-26 w-26 touch-none rounded-full border border-white/20 bg-black/60 backdrop-blur-md"
+            onPointerDown={(e) => {
+              (e.target as HTMLElement).setPointerCapture(e.pointerId);
+              handleRightPointer(e);
+            }}
+            onPointerMove={(e) => e.buttons && handleRightPointer(e)}
+            onPointerUp={endRightPointer}
+            onPointerCancel={endRightPointer}
+          >
+            <div
+              className="absolute h-9 w-9 rounded-full bg-white/40 border border-white/60"
+              style={{
+                left: `calc(50% + ${rightKnob.x * 32}px - 18px)`,
+                top: `calc(50% - ${rightKnob.y * 32}px - 18px)`,
+              }}
+            />
+          </div>
+          <span className="text-[9px] font-mono-tech tracking-wider text-zinc-400">
+            PITCH · YAW
+          </span>
+        </div>
+
+        {/* Action Column */}
+        <div className="flex flex-col gap-1.5">
+          <button
+            onPointerDown={() => (touch.boost = true)}
+            onPointerUp={() => (touch.boost = false)}
+            className="h-10 w-12 rounded border border-white/20 bg-black/60 text-[10px] font-mono-tech font-bold text-amber-300 active:bg-amber-400 active:text-black"
+          >
+            BOOST
+          </button>
+
+          {sim.docked ? (
+            <button
+              onClick={undock}
+              className="h-10 w-12 rounded bg-white text-black text-[10px] font-mono-tech font-bold active:scale-95 shadow-lg"
+            >
+              UNDOCK
+            </button>
+          ) : (
+            <button
+              onClick={sim.inReentryCorridor ? () => releaseCapturedDebris(true) : triggerCapture}
+              className={`h-10 w-12 rounded text-[10px] font-mono-tech font-bold active:scale-95 shadow-lg ${
+                sim.inReentryCorridor
+                  ? "bg-amber-400 text-black"
+                  : sim.capturedDebrisId
+                  ? "bg-zinc-200 text-black"
+                  : sim.canCapture
+                  ? "bg-emerald-400 text-black animate-pulse"
+                  : "bg-zinc-800 text-zinc-400 border border-white/20"
+              }`}
+            >
+              {sim.inReentryCorridor ? "DEORB" : sim.capturedDebrisId ? "DROP" : "GRAP"}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -102,6 +102,93 @@ export function useSpaceMaterials() {
 
 export type SpaceMaterials = ReturnType<typeof useSpaceMaterials>;
 
+const rocketPlumeVert = /* glsl */ `
+varying vec2 vUv;
+varying vec3 vNormal;
+varying vec3 vViewPos;
+
+void main() {
+  vUv = uv;
+  vNormal = normalize(normalMatrix * normal);
+  vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+  vViewPos = -mvPos.xyz;
+  gl_Position = projectionMatrix * mvPos;
+}
+`;
+
+const rocketPlumeFrag = /* glsl */ `
+uniform float uTime;
+uniform float uIntensity;
+uniform float uBoost;
+varying vec2 vUv;
+varying vec3 vNormal;
+varying vec3 vViewPos;
+
+// Fluid hash and value noise for streaming plasma turbulence
+float hash2(vec2 p) {
+  p = fract(p * vec2(234.34, 435.345));
+  p += dot(p, p + 34.23);
+  return fract(p.x * p.y);
+}
+
+float plasmaNoise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(hash2(i + vec2(0.0, 0.0)), hash2(i + vec2(1.0, 0.0)), u.x),
+    mix(hash2(i + vec2(0.0, 1.0)), hash2(i + vec2(1.0, 1.0)), u.x),
+    u.y
+  );
+}
+
+void main() {
+  if (uIntensity < 0.01) discard;
+
+  float y = vUv.y; // 0.0 at nozzle exit, 1.0 at exhaust tail
+  float xDist = abs(vUv.x - 0.5) * 2.0; // 0.0 at center, 1.0 at outer edge
+
+  // Supersonic exhaust velocity stream
+  float stream = y * 5.0 - uTime * 38.0;
+  float n1 = plasmaNoise(vec2(vUv.x * 6.0, stream));
+  float n2 = plasmaNoise(vec2(vUv.x * 14.0, stream * 2.3));
+  float turb = n1 * 0.6 + n2 * 0.4;
+
+  // Mach Shock Diamonds (characteristic supersonic expansion discs in vacuum)
+  float shock = pow(max(0.0, sin(y * 22.0 - uTime * 34.0)), 5.0) * (1.0 - y * 0.7);
+
+  // Volumetric radial & longitudinal falloff (eliminates sharp geometric cone edges)
+  float radialFalloff = pow(clamp(1.0 - xDist, 0.0, 1.0), 1.5);
+  float lengthFalloff = pow(clamp(1.0 - y, 0.0, 1.0), 1.2);
+  float envelope = radialFalloff * lengthFalloff;
+
+  // High-temperature aerospace plasma colors:
+  // - Throat core: Blinding incandescent white-blue (3000K+)
+  // - Supersonic column: Electric cerulean cyan (hydrazine/green propellant plasma)
+  // - Vacuum boundary: Deep ethereal violet & indigo fringe
+  vec3 hotWhite = vec3(0.96, 0.98, 1.0);
+  vec3 cyanPlasma = vec3(0.12, 0.68, 1.0);
+  vec3 violetFringe = vec3(0.55, 0.22, 0.95);
+
+  vec3 col = mix(hotWhite, cyanPlasma, smoothstep(0.0, 0.4, y));
+  col = mix(col, violetFringe, smoothstep(0.35, 0.95, y));
+
+  // Add Mach shock discs luminosity
+  col += hotWhite * shock * 0.65;
+
+  // Boost color shift: intense white-hot core
+  if (uBoost > 0.5) {
+    col = mix(col, vec3(1.0, 1.0, 1.0), 0.35);
+  }
+
+  // Final soft volumetric alpha with turbulent edges
+  float alpha = envelope * (0.65 + turb * 0.35 + shock * 0.25) * uIntensity;
+  alpha = clamp(alpha, 0.0, 1.0);
+
+  gl_FragColor = vec4(col * (1.3 + uBoost * 0.5), alpha);
+}
+`;
+
 /** The Reviver - Cosmoserve's Active Debris Removal Servicer */
 export function Reviver() {
   const mats = useSpaceMaterials();
@@ -109,11 +196,49 @@ export function Reviver() {
   const leftWing = useRef<THREE.Group>(null);
   const rightWing = useRef<THREE.Group>(null);
   const captureArms = useRef<(THREE.Group | null)[]>([]);
-  const thrusterGlow = useRef<THREE.Mesh>(null);
-  const thrusterCore = useRef<THREE.Mesh>(null);
+  const plumeGroup = useRef<THREE.Group>(null);
   const rcsPort = useRef<THREE.Mesh>(null);
   const rcsStarboard = useRef<THREE.Mesh>(null);
+  const rcsTop = useRef<THREE.Mesh>(null);
+  const rcsBottom = useRef<THREE.Mesh>(null);
+  const rcsRetro = useRef<THREE.Mesh>(null);
   const beaconMat = useMemo(() => hdr(2.2, 2.2, 2.5), []);
+
+  const plumeMat = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        vertexShader: rocketPlumeVert,
+        fragmentShader: rocketPlumeFrag,
+        uniforms: {
+          uTime: { value: 0 },
+          uIntensity: { value: 0 },
+          uBoost: { value: 0 },
+        },
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+    [],
+  );
+
+  const corePlumeMat = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        vertexShader: rocketPlumeVert,
+        fragmentShader: rocketPlumeFrag,
+        uniforms: {
+          uTime: { value: 0 },
+          uIntensity: { value: 0 },
+          uBoost: { value: 0 },
+        },
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+    [],
+  );
 
   const _q = useMemo(() => new THREE.Quaternion(), []);
   const _v = useMemo(() => new THREE.Vector3(), []);
@@ -149,39 +274,42 @@ export function Reviver() {
       }
     });
 
-    // Main Engine Dual Plume (Cyan Envelope + White Core)
-    const isThrusting = (sim.thrustAmount > 0.05 || sim.boosting) && sim.fuel > 0;
-    if (thrusterGlow.current) {
-      thrusterGlow.current.visible = isThrusting;
-      if (isThrusting) {
-        const scale = (sim.boosting ? 1.8 : 1.0) + Math.sin(clock.elapsedTime * 20) * 0.08;
-        thrusterGlow.current.scale.set(scale, scale, scale * (sim.boosting ? 2.0 : 1.3));
-      }
-    }
-    if (thrusterCore.current) {
-      thrusterCore.current.visible = isThrusting;
-      if (isThrusting) {
-        const coreScale = (sim.boosting ? 1.4 : 0.75) + Math.sin(clock.elapsedTime * 24) * 0.06;
-        thrusterCore.current.scale.set(coreScale, coreScale, coreScale * (sim.boosting ? 1.6 : 1.1));
+    // Main Engine Volumetric Rocket Flame (Shader-driven)
+    const isForward = (sim.thrustAmount > 0.05 || sim.boosting) && sim.fuel > 0;
+    const intensity = isForward ? (sim.boosting ? 1.0 : 0.85) : 0.0;
+    const boost = sim.boosting ? 1.0 : 0.0;
+
+    plumeMat.uniforms.uTime.value = clock.elapsedTime;
+    plumeMat.uniforms.uIntensity.value = intensity;
+    plumeMat.uniforms.uBoost.value = boost;
+
+    corePlumeMat.uniforms.uTime.value = clock.elapsedTime * 1.3;
+    corePlumeMat.uniforms.uIntensity.value = intensity;
+    corePlumeMat.uniforms.uBoost.value = boost;
+
+    if (plumeGroup.current) {
+      plumeGroup.current.visible = isForward;
+      if (isForward) {
+        const s = sim.boosting ? 1.55 : 1.0;
+        plumeGroup.current.scale.set(1, 1, s);
       }
     }
 
-    // RCS Attitude Thruster Puffs (Cold-Gas steering reaction control)
+    // 6-DOF RCS Cold-Gas Reaction Thrusters
     if (rcsPort.current) {
-      const active = sim.steerAmount > 0.1;
-      rcsPort.current.visible = active;
-      if (active) {
-        const s = 0.6 + Math.sin(clock.elapsedTime * 50) * 0.2;
-        rcsPort.current.scale.set(s, s, s);
-      }
+      rcsPort.current.visible = sim.steerAmount > 0.1 || sim.swayAmount > 0.1;
     }
     if (rcsStarboard.current) {
-      const active = sim.steerAmount < -0.1;
-      rcsStarboard.current.visible = active;
-      if (active) {
-        const s = 0.6 + Math.sin(clock.elapsedTime * 50) * 0.2;
-        rcsStarboard.current.scale.set(s, s, s);
-      }
+      rcsStarboard.current.visible = sim.steerAmount < -0.1 || sim.swayAmount < -0.1;
+    }
+    if (rcsTop.current) {
+      rcsTop.current.visible = sim.heaveAmount < -0.1;
+    }
+    if (rcsBottom.current) {
+      rcsBottom.current.visible = sim.heaveAmount > 0.1;
+    }
+    if (rcsRetro.current) {
+      rcsRetro.current.visible = sim.thrustAmount < -0.05;
     }
 
     // Strobe navigation light
@@ -278,16 +406,36 @@ export function Reviver() {
         <cylinderGeometry args={[0.18, 0.42, 0.5, 16]} />
       </mesh>
 
-      {/* Dynamic Thruster Exhaust Flame - Outer Plume */}
+      {/* Incandescent Nozzle Throat Emitter (Blazing Interior Glow) */}
+      <mesh position={[0, 0, -1.33]}>
+        <circleGeometry args={[0.19, 24]} />
+        <meshBasicMaterial color={new THREE.Color(0.9, 0.96, 1.0)} />
+      </mesh>
+
+      {/* Photorealistic Volumetric Vacuum Rocket Plume */}
+      <group ref={plumeGroup} position={[0, 0, -1.38]} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
+        {/* Outer Flared Vacuum Expansion Bell Plume */}
+        <mesh material={plumeMat} position={[0, 1.3, 0]}>
+          <cylinderGeometry args={[0.22, 0.72, 2.6, 32, 24, true]} />
+        </mesh>
+
+        {/* Inner Supersonic Shock Core Column */}
+        <mesh material={corePlumeMat} position={[0, 0.85, 0]}>
+          <cylinderGeometry args={[0.13, 0.32, 1.7, 24, 16, true]} />
+        </mesh>
+      </group>
+
+      {/* 6-DOF RCS Cold-Gas Reaction Nozzles */}
+      {/* Port Sway / Yaw RCS */}
       <mesh
-        ref={thrusterGlow}
-        position={[0, 0, -2.1]}
-        rotation={[-Math.PI / 2, 0, 0]}
+        ref={rcsPort}
+        position={[-1.25, 0, 0.6]}
+        rotation={[0, 0, Math.PI / 2]}
         visible={false}
       >
-        <coneGeometry args={[0.34, 1.6, 16]} />
+        <coneGeometry args={[0.12, 0.5, 12]} />
         <meshBasicMaterial
-          color={new THREE.Color(0.2, 0.65, 1.0)}
+          color={new THREE.Color(0.7, 0.88, 1.0)}
           transparent
           opacity={0.65}
           blending={THREE.AdditiveBlending}
@@ -295,52 +443,69 @@ export function Reviver() {
         />
       </mesh>
 
-      {/* Dynamic Thruster Exhaust Flame - Inner White/Cyan Hot Core */}
-      <mesh
-        ref={thrusterCore}
-        position={[0, 0, -1.8]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        visible={false}
-      >
-        <coneGeometry args={[0.18, 1.0, 16]} />
-        <meshBasicMaterial
-          color={new THREE.Color(0.85, 0.95, 1.0)}
-          transparent
-          opacity={0.9}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* Port Attitude RCS Quad Puffs */}
-      <mesh
-        ref={rcsPort}
-        position={[-1.25, 0, 0.6]}
-        rotation={[0, 0, Math.PI / 2]}
-        visible={false}
-      >
-        <coneGeometry args={[0.12, 0.45, 8]} />
-        <meshBasicMaterial
-          color={new THREE.Color(0.7, 0.88, 1.0)}
-          transparent
-          opacity={0.6}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* Starboard Attitude RCS Quad Puffs */}
+      {/* Starboard Sway / Yaw RCS */}
       <mesh
         ref={rcsStarboard}
         position={[1.25, 0, 0.6]}
         rotation={[0, 0, -Math.PI / 2]}
         visible={false}
       >
-        <coneGeometry args={[0.12, 0.45, 8]} />
+        <coneGeometry args={[0.12, 0.5, 12]} />
         <meshBasicMaterial
           color={new THREE.Color(0.7, 0.88, 1.0)}
           transparent
-          opacity={0.6}
+          opacity={0.65}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Dorsal Heave-Down RCS */}
+      <mesh
+        ref={rcsTop}
+        position={[0, 1.25, 0.6]}
+        rotation={[0, 0, 0]}
+        visible={false}
+      >
+        <coneGeometry args={[0.12, 0.5, 12]} />
+        <meshBasicMaterial
+          color={new THREE.Color(0.7, 0.88, 1.0)}
+          transparent
+          opacity={0.65}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Ventral Heave-Up RCS */}
+      <mesh
+        ref={rcsBottom}
+        position={[0, -1.25, 0.6]}
+        rotation={[Math.PI, 0, 0]}
+        visible={false}
+      >
+        <coneGeometry args={[0.12, 0.5, 12]} />
+        <meshBasicMaterial
+          color={new THREE.Color(0.7, 0.88, 1.0)}
+          transparent
+          opacity={0.65}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Forward Retrograde / Brake RCS */}
+      <mesh
+        ref={rcsRetro}
+        position={[0, 0, 1.3]}
+        rotation={[0, 0, 0]}
+        visible={false}
+      >
+        <coneGeometry args={[0.16, 0.6, 12]} />
+        <meshBasicMaterial
+          color={new THREE.Color(0.7, 0.88, 1.0)}
+          transparent
+          opacity={0.7}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
         />

@@ -65,16 +65,28 @@ export function Game() {
       if (code === "KeyP" || code === "Escape") togglePause();
       if (sim.screen !== "playing") return;
 
+      // Cycle Camera View (V)
       if (code === "KeyV") cycleView();
 
-      // Dedicated Soft-Robotic Capture Key:
-      // Command (Mac: MetaLeft/MetaRight/metaKey) or Alt (Windows: AltLeft/AltRight/altKey) or C
+      // RCS Rotational Damper Toggle (X)
+      if (code === "KeyX") {
+        sim.damp = !sim.damp;
+        audio.beep(sim.damp ? 1100 : 700, 0.08);
+        sim.flashMessage = sim.damp
+          ? "RCS ROTATIONAL DAMPER: ENGAGED"
+          : "RCS ROTATIONAL DAMPER: MANUAL DRIFT";
+        sim.flashTimer = 2.5;
+        return;
+      }
+
+      // Soft-Robotic Capture: E or Click Action Button (also supports Cmd / Alt / C)
       const isCaptureKey =
+        code === "KeyE" ||
+        code === "KeyC" ||
         code === "MetaLeft" ||
         code === "MetaRight" ||
         code === "AltLeft" ||
         code === "AltRight" ||
-        code === "KeyC" ||
         event.metaKey ||
         event.altKey;
 
@@ -91,7 +103,7 @@ export function Game() {
         return;
       }
 
-      // Space / Enter: Undock when at station, or De-orbit Burn when in corridor
+      // Space / Enter: Undock from Base, or Atmospheric De-Orbit Burn
       if (code === "Space" || code === "Enter") {
         if (sim.docked) {
           undock();
@@ -103,8 +115,8 @@ export function Game() {
         }
       }
 
-      // Forward thrusters (W / Up) while docked launches craft
-      if (sim.docked && (code === "KeyW" || code === "ArrowUp")) {
+      // Forward thrusters (R, W, Up) while docked launches craft
+      if (sim.docked && (code === "KeyR" || code === "KeyW" || code === "ArrowUp")) {
         undock();
         audio.thud(60, 0.35, 0.6);
         audio.voice("Reviver detached. Orbit cleanup sortie active.");

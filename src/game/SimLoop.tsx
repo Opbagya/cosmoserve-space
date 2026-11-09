@@ -105,15 +105,15 @@ export function SimLoop() {
         sim.recharging = false;
       }
 
-      // Check Launch Inputs (W, Up, Space, or Action)
+      // Check Launch Inputs (R, Forward, Space, or Action)
       const ax = readAxes();
-      if (ax.thrust > 0.1 || ax.boost || ax.action) {
+      if (ax.forward > 0.1 || ax.boost || ax.action || ax.pitch < -0.1) {
         undock();
         audio.thud(60, 0.35, 0.6);
         audio.voice("Reviver detached. Orbit cleanup sortie active.");
       }
     } else {
-      // --- 2. ACTIVE FLIGHT OPERATIONS ---
+      // --- 2. ACTIVE 6-DOF FLIGHT OPERATIONS ---
       const ax = readAxes();
       const hasFuel = sim.fuel > 0;
 
@@ -151,51 +151,74 @@ export function SimLoop() {
         audio.voice("Docking confirmed. Rapid refueling complete.");
       }
 
-      // --- SIMPLE, RESPONSIVE STEERING & FLIGHT ---
-      sim.thrustAmount = ax.thrust;
-      sim.steerAmount = ax.steer;
+      // --- 6-DOF ROTATIONAL CONTROLS ---
+      // Pitch: W / S or ↑ / ↓
+      // Yaw: A / D or ← / →
+      // Roll: Q / E
+      const rotRate = ROT_ACCEL * 1.5;
 
-      // Smooth steering interpolation - eliminates twitches & snappy rotation
-      smoothSteer.current += (ax.steer - smoothSteer.current) * (1 - Math.exp(-12 * dt));
-      currentEuler.current.y -= smoothSteer.current * ROT_ACCEL * dt;
+      currentEuler.current.x += ax.pitch * rotRate * dt;
+      currentEuler.current.y -= ax.yaw * rotRate * dt;
+      currentEuler.current.z -= ax.roll * rotRate * dt;
 
-      // Pitch with R/F
-      if (Math.abs(ax.pitch) > 0.05) {
-        currentEuler.current.x = Math.max(
-          -0.75,
-          Math.min(0.75, currentEuler.current.x + ax.pitch * ROT_ACCEL * dt),
-        );
+      // RCS Rotational Damper (toggled by X)
+      if (sim.damp) {
+        if (Math.abs(ax.pitch) < 0.05) {
+          currentEuler.current.x += (0 - currentEuler.current.x) * (1 - Math.exp(-3.5 * dt));
+        }
+        if (Math.abs(ax.roll) < 0.05) {
+          currentEuler.current.z += (0 - currentEuler.current.z) * (1 - Math.exp(-4.5 * dt));
+        }
       }
 
-      // Natural banking roll when turning
-      const targetRoll = -smoothSteer.current * 0.32;
-      currentEuler.current.z += (targetRoll - currentEuler.current.z) * (1 - Math.exp(-6.0 * dt));
+      // Clamp pitch to avoid gimbal flipping
+      currentEuler.current.x = Math.max(-1.4, Math.min(1.4, currentEuler.current.x));
 
       sim.quat.setFromEuler(currentEuler.current);
 
-      // --- RESPONSIVE FORWARD FLIGHT ---
+      // --- 6-DOF TRANSLATIONAL CONTROLS ---
+      // Forward / Retrograde: R / F
+      // Sway Left / Right: J / L
+      // Heave Up / Down: Space / C
+      // Boost: Shift (Hold)
       sim.boosting = ax.boost && hasFuel;
-      const targetSpeed = sim.boosting
+
+      const forwardSpeed = sim.boosting
         ? BOOST_ACCEL
-        : ax.thrust > 0
+        : ax.forward > 0
         ? TRANS_ACCEL
-        : ax.thrust < 0
-        ? -TRANS_ACCEL * 0.4
+        : ax.forward < 0
+        ? -TRANS_ACCEL * 0.5
         : 0;
 
-      // Forward vector in facing direction
-      const fwd = T1.set(0, 0, 1).applyQuaternion(sim.quat);
-      const targetVel = T2.copy(fwd).multiplyScalar(hasFuel ? targetSpeed : 0);
-      sim.thrustWorld.copy(fwd).multiplyScalar(ax.thrust);
+      const swaySpeed = ax.sway * TRANS_ACCEL * 0.7;
+      const heaveSpeed = ax.heave * TRANS_ACCEL * 0.7;
 
-      // Smoothly align craft velocity to heading (arcade responsiveness)
-      if (Math.abs(ax.thrust) > 0.05 || sim.boosting) {
+      // Transform local 6-DOF translation to world space
+      const localTrans = T1.set(swaySpeed, heaveSpeed, forwardSpeed);
+      const targetVel = T2.copy(localTrans).applyQuaternion(sim.quat);
+      sim.thrustWorld.copy(targetVel);
+
+      sim.thrustAmount = ax.forward;
+      sim.steerAmount = ax.yaw;
+      sim.swayAmount = ax.sway;
+      sim.heaveAmount = ax.heave;
+      sim.rollAmount = ax.roll;
+
+      const hasMotion =
+        Math.abs(ax.forward) > 0.05 ||
+        Math.abs(ax.sway) > 0.05 ||
+        Math.abs(ax.heave) > 0.05 ||
+        sim.boosting;
+
+      if (hasMotion && hasFuel) {
         sim.vel.lerp(targetVel, 1 - Math.exp(-5.5 * dt));
         const rate = sim.boosting ? BOOST_FUEL_RATE : TRANS_FUEL_RATE;
-        sim.fuel = Math.max(0, sim.fuel - rate * dt);
-        audio.setHiss(sim.boosting ? 1.4 : 0.7);
+        const totalInput = Math.abs(ax.forward) + Math.abs(ax.sway) * 0.5 + Math.abs(ax.heave) * 0.5;
+        sim.fuel = Math.max(0, sim.fuel - rate * dt * Math.max(0.6, totalInput));
+        audio.setHiss(sim.boosting ? 1.4 : Math.abs(ax.forward) > 0.1 ? 0.8 : 0.4);
       } else {
-        // Natural gradual orbital deceleration when letting go of throttle
+        // Orbital drift deceleration
         sim.vel.multiplyScalar(1 - Math.min(0.4, 0.8 * dt));
         audio.setHiss(0);
       }
