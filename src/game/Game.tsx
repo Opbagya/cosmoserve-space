@@ -9,7 +9,6 @@ import { CosmoserveModal } from "./CosmoserveModal";
 import {
   Camera,
   ExternalLink,
-  Flame,
   Info,
   Music2,
   Pause,
@@ -94,46 +93,46 @@ export function Game() {
   const s = sim.screen;
 
   return (
-    <div className="fixed inset-0 w-screen h-screen overflow-hidden bg-[#030611] select-none font-hud text-slate-100">
-      {/* 3D WebGL Space Canvas */}
+    <div className="fixed inset-0 w-screen h-screen overflow-hidden bg-[#050609] select-none font-hud text-zinc-100">
+      {/* 3D WebGL Space Scene */}
       <SpaceScene />
 
-      {/* Cockpit & Orbital Telemetry HUD */}
+      {/* Real-time Telemetry HUD */}
       {(s === "playing" || s === "paused") && <HUD />}
 
-      {/* Top Action Bar (Music, View, About, Pause) */}
+      {/* Top Utility Controls */}
       {s === "playing" && (
         <div className="fixed right-4 top-4 z-30 flex items-center gap-2">
           <button
             onClick={() => setAboutOpen(true)}
             title="About Cosmoserve Space"
-            className="flex h-9 w-9 items-center justify-center rounded border border-cyan-500/40 bg-[#070b16]/80 text-cyan-300 hover:bg-cyan-900/40 active:scale-95 transition backdrop-blur-md"
+            className="flex h-8 w-8 items-center justify-center rounded border border-white/10 bg-black/50 text-zinc-300 hover:text-white hover:bg-white/10 active:scale-95 transition backdrop-blur-md"
           >
-            <Info size={16} />
+            <Info size={14} />
           </button>
 
           <button
             onClick={cycleView}
             title="Cycle Camera View"
-            className="flex h-9 w-9 items-center justify-center rounded border border-cyan-500/40 bg-[#070b16]/80 text-cyan-300 hover:bg-cyan-900/40 active:scale-95 transition backdrop-blur-md"
+            className="flex h-8 w-8 items-center justify-center rounded border border-white/10 bg-black/50 text-zinc-300 hover:text-white hover:bg-white/10 active:scale-95 transition backdrop-blur-md"
           >
-            <Camera size={16} />
+            <Camera size={14} />
           </button>
 
           <button
             onClick={toggleMusic}
-            title={musicOn ? "Mute Cosmic Score" : "Play Cosmic Score"}
-            className="flex h-9 w-9 items-center justify-center rounded border border-cyan-500/40 bg-[#070b16]/80 text-cyan-300 hover:bg-cyan-900/40 active:scale-95 transition backdrop-blur-md"
+            title={musicOn ? "Mute Ambient Score" : "Play Ambient Score"}
+            className="flex h-8 w-8 items-center justify-center rounded border border-white/10 bg-black/50 text-zinc-300 hover:text-white hover:bg-white/10 active:scale-95 transition backdrop-blur-md"
           >
-            {musicOn ? <Music2 size={16} /> : <VolumeX size={16} />}
+            {musicOn ? <Music2 size={14} /> : <VolumeX size={14} />}
           </button>
 
           <button
             onClick={togglePause}
-            title="Pause Mission"
-            className="flex h-9 w-9 items-center justify-center rounded border border-cyan-500/40 bg-[#070b16]/80 text-cyan-300 hover:bg-cyan-900/40 active:scale-95 transition backdrop-blur-md"
+            title="Pause Flight"
+            className="flex h-8 w-8 items-center justify-center rounded border border-white/10 bg-black/50 text-zinc-300 hover:text-white hover:bg-white/10 active:scale-95 transition backdrop-blur-md"
           >
-            <Pause size={16} />
+            <Pause size={14} />
           </button>
         </div>
       )}
@@ -146,34 +145,37 @@ export function Game() {
         <Briefing onStart={startMission} onOpenAbout={() => setAboutOpen(true)} />
       )}
 
-      {/* About Cosmoserve Space Details Modal */}
+      {/* About Cosmoserve Modal */}
       {aboutOpen && <CosmoserveModal onClose={() => setAboutOpen(false)} />}
 
-      {/* Paused Screen */}
+      {/* Paused Menu */}
       {s === "paused" && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-xl border border-cyan-500/40 bg-[#070b16] p-6 sm:p-8 text-center shadow-2xl">
-            <h2 className="font-display text-3xl font-extrabold tracking-widest text-cyan-400">
-              MISSION PAUSED
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="w-full max-w-sm rounded-lg border border-white/10 bg-[#090b10] p-6 text-center shadow-2xl">
+            <h2 className="font-mono-tech text-xs tracking-[0.25em] text-zinc-400 uppercase">
+              Flight Operations
             </h2>
-            <p className="mt-2 text-xs text-slate-400">
-              Orbital telemetry suspended. Reviver in station-keeping hold.
+            <div className="mt-1 font-display text-2xl font-bold tracking-tight text-white">
+              SIMULATION PAUSED
+            </div>
+            <p className="mt-2 text-xs text-zinc-400 leading-relaxed">
+              Orbital telemetry frozen. Reviver in automated attitude hold.
             </p>
 
-            <div className="mt-6 flex flex-col gap-3">
+            <div className="mt-6 flex flex-col gap-2.5">
               <button
                 onClick={togglePause}
-                className="flex items-center justify-center gap-2 rounded-lg border border-cyan-400 bg-cyan-600 px-6 py-3 font-bold text-white hover:bg-cyan-500 transition"
+                className="flex items-center justify-center gap-2 rounded bg-zinc-100 hover:bg-white py-2.5 text-xs font-bold tracking-wider text-zinc-950 transition active:scale-98"
               >
-                <Play size={16} />
-                <span>RESUME MISSION</span>
+                <Play size={14} />
+                <span>RESUME SORTIE</span>
               </button>
 
               <button
                 onClick={startMission}
-                className="flex items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-6 py-2.5 text-xs text-slate-300 hover:bg-slate-800 transition"
+                className="flex items-center justify-center gap-2 rounded border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] py-2 text-xs font-mono-tech tracking-wider text-zinc-300 transition"
               >
-                <RotateCcw size={14} />
+                <RotateCcw size={13} />
                 <span>RESTART MISSION</span>
               </button>
             </div>
@@ -181,43 +183,43 @@ export function Game() {
         </div>
       )}
 
-      {/* Mission Success Victory Screen */}
+      {/* Mission Complete Victory Screen */}
       {s === "success" && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
-          <div className="w-full max-w-2xl rounded-xl border border-emerald-500/50 bg-[#050914] p-6 sm:p-10 shadow-2xl">
-            <div className="flex items-center gap-2 text-xs font-bold tracking-[0.3em] text-emerald-400">
-              <span>ALL TARGETS DE-ORBITED</span>
-              <span>•</span>
-              <span>MISSION EMBRACE SUCCESS</span>
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/85 backdrop-blur-xl p-4 sm:p-6">
+          <div className="w-full max-w-xl rounded-lg border border-white/10 bg-[#090b10] p-6 sm:p-8 shadow-2xl">
+            <div className="flex items-center gap-2 text-[11px] font-mono-tech tracking-[0.25em] text-emerald-400 uppercase">
+              <span>Sortie Complete</span>
+              <span className="text-zinc-600">•</span>
+              <span>All Debris De-orbited</span>
             </div>
 
-            <h2 className="mt-2 font-display text-3xl sm:text-5xl font-black text-white">
+            <h2 className="mt-2 font-display text-2xl sm:text-4xl font-bold text-white tracking-tight">
               ORBIT SUSTAINABILITY ACHIEVED
             </h2>
 
-            <p className="mt-3 text-sm text-slate-300 leading-relaxed">
-              Every hazardous space debris target was captured using Cosmoserve&apos;s soft-robotic gripper and de-orbited into the atmospheric entry interface, cleanly dispersing above the Pacific Ocean.
+            <p className="mt-2 text-xs sm:text-sm text-zinc-400 leading-relaxed">
+              Every targeted space debris object was secured via Cosmoserve&apos;s soft-robotic capture arm and guided into the atmospheric re-entry corridor, incinerating cleanly in the upper mesosphere over Point Nemo.
             </p>
 
             {/* Scorecard */}
             <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-              <div className="rounded border border-emerald-500/30 bg-emerald-950/30 p-3">
-                <div className="text-[10px] text-slate-400 tracking-wider">CLEARED</div>
-                <div className="font-mono-tech text-xl font-bold text-emerald-400">
+              <div className="rounded border border-white/[0.06] bg-white/[0.02] p-3">
+                <div className="text-[10px] font-mono-tech text-zinc-500 uppercase tracking-wider">CLEARED</div>
+                <div className="font-mono-tech text-lg font-bold text-zinc-100">
                   {sim.clearedCount} / {sim.totalDebris}
                 </div>
               </div>
 
-              <div className="rounded border border-cyan-500/30 bg-cyan-950/30 p-3">
-                <div className="text-[10px] text-slate-400 tracking-wider">FINAL FUEL</div>
-                <div className="font-mono-tech text-xl font-bold text-cyan-300">
+              <div className="rounded border border-white/[0.06] bg-white/[0.02] p-3">
+                <div className="text-[10px] font-mono-tech text-zinc-500 uppercase tracking-wider">REMAINING ΔV</div>
+                <div className="font-mono-tech text-lg font-bold text-zinc-100">
                   {sim.fuel.toFixed(1)}%
                 </div>
               </div>
 
-              <div className="rounded border border-amber-500/30 bg-amber-950/30 p-3">
-                <div className="text-[10px] text-slate-400 tracking-wider">MISSION TIME</div>
-                <div className="font-mono-tech text-xl font-bold text-amber-300">
+              <div className="rounded border border-white/[0.06] bg-white/[0.02] p-3">
+                <div className="text-[10px] font-mono-tech text-zinc-500 uppercase tracking-wider">FLIGHT TIME</div>
+                <div className="font-mono-tech text-lg font-bold text-zinc-100">
                   {Math.floor(sim.time / 60)}:
                   {Math.floor(sim.time % 60)
                     .toString()
@@ -225,28 +227,28 @@ export function Game() {
                 </div>
               </div>
 
-              <div className="rounded border border-purple-500/30 bg-purple-950/30 p-3">
-                <div className="text-[10px] text-slate-400 tracking-wider">TOTAL SCORE</div>
-                <div className="font-mono-tech text-xl font-bold text-purple-300">
+              <div className="rounded border border-white/[0.06] bg-white/[0.02] p-3">
+                <div className="text-[10px] font-mono-tech text-zinc-500 uppercase tracking-wider">TOTAL SCORE</div>
+                <div className="font-mono-tech text-lg font-bold text-zinc-100">
                   {sim.score.total}
                 </div>
               </div>
             </div>
 
-            <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-white/[0.08] pt-6">
               <a
                 href="https://cosmoserve.space/"
                 target="_blank"
                 rel="noreferrer"
-                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg border border-cyan-400 bg-cyan-600 px-6 py-3 font-display font-bold text-white hover:bg-cyan-500 transition shadow-lg"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded bg-zinc-100 hover:bg-white px-6 py-2.5 text-xs font-bold tracking-wider text-zinc-950 transition shadow-lg active:scale-98"
               >
-                <span>EXPLORE COSMOSERVE SPACE →</span>
-                <ExternalLink size={14} />
+                <span>EXPLORE COSMOSERVE SPACE</span>
+                <ExternalLink size={13} />
               </a>
 
               <button
                 onClick={startMission}
-                className="w-full sm:w-auto rounded-lg border border-slate-700 bg-slate-900 px-6 py-3 text-xs font-bold text-slate-300 hover:bg-slate-800 transition"
+                className="w-full sm:w-auto rounded border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] px-5 py-2.5 text-xs font-mono-tech tracking-wider text-zinc-300 transition"
               >
                 FLY SORTIE AGAIN
               </button>

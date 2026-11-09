@@ -18,10 +18,10 @@ export const FUEL_CAPACITY = 100.0; // Delta-V percentage / tank units
 export const TRANS_ACCEL = 1.6; // m/s² normal translation
 export const BOOST_ACCEL = 4.2; // Boost surge
 export const ROT_ACCEL = 0.55; // rad/s² angular
-export const TRANS_FUEL_RATE = 0.55; // Fuel per second under full thrust
-export const BOOST_FUEL_RATE = 1.35; // Fuel per second during boost
-export const ROT_FUEL_RATE = 0.12; // Rotational RCS fuel consumption
-export const RECHARGE_RATE = 45.0; // 45% per second -> Full recharge in ~2.2s!
+export const TRANS_FUEL_RATE = 0.48; // Fuel per second under full thrust
+export const BOOST_FUEL_RATE = 1.15; // Fuel per second during boost
+export const ROT_FUEL_RATE = 0.08; // Rotational RCS fuel consumption
+export const RECHARGE_RATE = 180.0; // Rapid recharge (~0.5s to 100%)
 
 export const SUN_DIR = new THREE.Vector3(0.92, 0.35, 0.16).normalize();
 

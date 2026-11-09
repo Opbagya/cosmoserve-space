@@ -88,10 +88,10 @@ export function SimLoop() {
       if (sim.fuel < FUEL_CAPACITY || sim.hull < 100) {
         sim.recharging = true;
         sim.fuel = Math.min(FUEL_CAPACITY, sim.fuel + RECHARGE_RATE * dt);
-        sim.hull = Math.min(100, sim.hull + 25 * dt);
+        sim.hull = Math.min(100, sim.hull + 80 * dt);
 
         rechargeAudioTimer += dt;
-        if (rechargeAudioTimer >= 0.25) {
+        if (rechargeAudioTimer >= 0.1) {
           audio.rechargeHum(sim.fuel / FUEL_CAPACITY);
           rechargeAudioTimer = 0;
         }

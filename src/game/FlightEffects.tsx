@@ -55,13 +55,13 @@ export function FlightEffects() {
       {/* Dynamic Hyperspeed Motion Particles */}
       <points ref={starPoints} geometry={starGeo}>
         <pointsMaterial
-          size={1.6}
+          size={1.1}
           map={glowTex}
           transparent
-          opacity={sim.boosting ? 0.85 : 0.25}
+          opacity={sim.boosting ? 0.5 : 0.15}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
-          color={new THREE.Color(0.4, 0.8, 1.0)}
+          color={new THREE.Color(0.85, 0.9, 0.95)}
         />
       </points>
 

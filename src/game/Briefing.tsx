@@ -1,9 +1,7 @@
 import {
   ExternalLink,
   Flame,
-  Globe,
   Play,
-  RotateCcw,
   ShieldCheck,
   Zap,
 } from "lucide-react";
@@ -15,136 +13,132 @@ interface BriefingProps {
 
 export function Briefing({ onStart, onOpenAbout }: BriefingProps) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-black/80 p-4 backdrop-blur-md font-hud">
-      <div className="relative w-full max-w-4xl rounded-xl border border-cyan-500/40 bg-[#060a16]/95 p-6 sm:p-10 text-slate-100 shadow-2xl">
-        {/* Cosmoserve Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-cyan-500/30 pb-5">
+    <div className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-black/80 p-4 sm:p-6 backdrop-blur-xl font-hud">
+      <div className="relative w-full max-w-4xl rounded-lg border border-white/10 bg-[#090b10] p-6 sm:p-10 text-zinc-100 shadow-2xl">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-6">
           <div>
-            <div className="flex items-center gap-2 text-xs font-bold tracking-[0.3em] text-cyan-400">
+            <div className="flex items-center gap-2 text-[11px] font-mono-tech tracking-[0.25em] text-zinc-400">
               <span>COSMOSERVE SPACE</span>
-              <span className="text-slate-500">|</span>
-              <span className="text-amber-400">MISSION EMBRACE</span>
+              <span className="text-zinc-600">/</span>
+              <span className="text-zinc-200">MISSION EMBRACE</span>
             </div>
-            <h1 className="mt-1 font-display text-2xl sm:text-4xl font-extrabold tracking-wider text-white">
+            <h1 className="mt-1 font-display text-2xl sm:text-4xl font-bold tracking-tight text-white">
               ORBITAL ACTIVE DEBRIS REMOVAL
             </h1>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onOpenAbout}
-              className="flex items-center gap-1.5 rounded border border-cyan-500/40 bg-cyan-950/40 px-3 py-1.5 text-xs text-cyan-300 hover:bg-cyan-900/50 transition"
-            >
-              <span>ABOUT COSMOSERVE</span>
-              <ExternalLink size={12} />
-            </button>
-          </div>
+          <button
+            onClick={onOpenAbout}
+            className="flex items-center gap-1.5 rounded border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs text-zinc-300 hover:bg-white/[0.08] transition"
+          >
+            <span>ABOUT MISSION</span>
+            <ExternalLink size={12} />
+          </button>
         </div>
 
-        {/* Mission Briefing Context */}
+        {/* 3-Column Architecture Matrix */}
         <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-4">
-            <div className="flex items-center gap-2 text-cyan-300 font-bold tracking-wider">
-              <Zap size={16} />
-              <span>THE COSMOSERVE DUO</span>
+          <div className="rounded border border-white/[0.06] bg-white/[0.02] p-5">
+            <div className="flex items-center gap-2 text-zinc-200 font-semibold tracking-wider font-mono-tech">
+              <Zap size={14} className="text-zinc-400" />
+              <span>THE DUO ARCHITECTURE</span>
             </div>
-            <p className="mt-2 text-slate-300 leading-relaxed">
-              Command the <strong className="text-cyan-300">Reviver</strong> servicer craft docked at the orbital <strong className="text-cyan-300">Mothercraft</strong> depot. Equipped with adaptive soft-robotic capture tentacles developed by Cosmoserve Space (founded by former ISRO scientist <strong className="text-white">Dr. Chiranjeevi Phanindra</strong>).
+            <p className="mt-2 text-zinc-400 leading-relaxed">
+              Pilot the <strong className="text-zinc-200">Reviver</strong> servicer craft docked at the orbital <strong className="text-zinc-200">Mothercraft</strong> depot. Equipped with adaptive soft-robotic capture arms developed by Cosmoserve Space (founded by former ISRO scientist <strong className="text-zinc-200">Dr. Chiranjeevi Phanindra</strong>).
             </p>
           </div>
 
-          <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-4">
-            <div className="flex items-center gap-2 text-amber-300 font-bold tracking-wider">
-              <Flame size={16} />
-              <span>SUB-120KM RE-ENTRY DISPERSAL</span>
+          <div className="rounded border border-white/[0.06] bg-white/[0.02] p-5">
+            <div className="flex items-center gap-2 text-zinc-200 font-semibold tracking-wider font-mono-tech">
+              <Flame size={14} className="text-amber-400" />
+              <span>SUB-120KM RE-ENTRY BURN</span>
             </div>
-            <p className="mt-2 text-slate-300 leading-relaxed">
-              Capture tumbling space debris (defunct satellites, spent rocket boosters) and tow them down to the designated <strong className="text-amber-300">Atmospheric Re-entry Corridor (~120 km)</strong> where aerodynamic friction naturally incinerates the debris upon entry!
+            <p className="mt-2 text-zinc-400 leading-relaxed">
+              Capture non-operational satellites and tow them to the <strong className="text-zinc-200">Atmospheric Re-entry Corridor (~120 km)</strong> above Point Nemo. Hypersonic aerodynamic drag naturally incinerates the debris upon entry.
             </p>
           </div>
 
-          <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-4">
-            <div className="flex items-center gap-2 text-emerald-300 font-bold tracking-wider">
-              <ShieldCheck size={16} />
-              <span>DYNAMIC FUEL & RECHARGE</span>
+          <div className="rounded border border-white/[0.06] bg-white/[0.02] p-5">
+            <div className="flex items-center gap-2 text-zinc-200 font-semibold tracking-wider font-mono-tech">
+              <ShieldCheck size={14} className="text-emerald-400" />
+              <span>DYNAMIC ΔV & RECHARGE</span>
             </div>
-            <p className="mt-2 text-slate-300 leading-relaxed">
-              Your fuel allows cleaning <strong className="text-emerald-300">2 to 3 satellites</strong> per run. Watch the <strong className="text-amber-300">floating return line</strong> on your fuel bar—it dynamically indicates the ΔV needed to burn back to the Mothercraft for fast replenishment!
+            <p className="mt-2 text-zinc-400 leading-relaxed">
+              Fuel supports <strong className="text-zinc-200">2–3 satellite cleanups</strong> per sortie. Watch the <strong className="text-amber-400">return needle</strong> on your fuel gauge. Returning to the Mothercraft replenishes tanks in <strong className="text-zinc-200">&lt; 1 second</strong>.
             </p>
           </div>
         </div>
 
-        {/* Flight Controls Cheat Sheet */}
-        <div className="mt-6 rounded-lg border border-cyan-500/20 bg-[#0a0f20]/60 p-4">
-          <div className="text-xs font-bold tracking-widest text-cyan-400 mb-3">
-            FLIGHT & CAPTURE CONTROLS
+        {/* Flight & System Controls */}
+        <div className="mt-6 rounded border border-white/[0.06] bg-black/40 p-4">
+          <div className="text-[11px] font-mono-tech tracking-widest text-zinc-400 mb-3 uppercase">
+            Flight Telemetry & Controls
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div className="flex flex-col">
-              <span className="font-mono-tech text-cyan-300 font-bold">W / S or ↑ / ↓</span>
-              <span className="text-slate-400">Pitch Nose Down / Up</span>
+              <span className="font-mono-tech text-zinc-200 font-semibold">W / S or ↑ / ↓</span>
+              <span className="text-zinc-500 text-[11px]">Pitch Nose Down / Up</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-mono-tech text-cyan-300 font-bold">A / D or ← / →</span>
-              <span className="text-slate-400">Yaw Left / Right</span>
+              <span className="font-mono-tech text-zinc-200 font-semibold">A / D or ← / →</span>
+              <span className="text-zinc-500 text-[11px]">Yaw Left / Right</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-mono-tech text-cyan-300 font-bold">Q / E</span>
-              <span className="text-slate-400">Roll CCW / CW</span>
+              <span className="font-mono-tech text-zinc-200 font-semibold">Q / E</span>
+              <span className="text-zinc-500 text-[11px]">Roll CCW / CW</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-mono-tech text-cyan-300 font-bold">R / F</span>
-              <span className="text-slate-400">Forward / Retro Thrust</span>
+              <span className="font-mono-tech text-zinc-200 font-semibold">R / F</span>
+              <span className="text-zinc-500 text-[11px]">Forward / Retro Thrust</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-mono-tech text-cyan-300 font-bold">Space / C</span>
-              <span className="text-slate-400">Heave Up / Down</span>
+              <span className="font-mono-tech text-zinc-200 font-semibold">Space / C</span>
+              <span className="text-zinc-500 text-[11px]">Heave Up / Down</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-mono-tech text-cyan-300 font-bold">Shift (Hold)</span>
-              <span className="text-slate-400">Boost Surge</span>
+              <span className="font-mono-tech text-zinc-200 font-semibold">Shift (Hold)</span>
+              <span className="text-zinc-500 text-[11px]">Main Boost Surge</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-mono-tech text-cyan-300 font-bold">E / Click</span>
-              <span className="text-slate-400">Soft Robotic Capture</span>
+              <span className="font-mono-tech text-zinc-200 font-semibold">E / Click</span>
+              <span className="text-zinc-500 text-[11px]">Soft Robotic Capture</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-mono-tech text-cyan-300 font-bold">X / V</span>
-              <span className="text-slate-400">RCS Damper / Cycle Cam</span>
+              <span className="font-mono-tech text-zinc-200 font-semibold">X / V</span>
+              <span className="text-zinc-500 text-[11px]">RCS Damper / Camera</span>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons & Links */}
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4 text-xs text-slate-400">
+        {/* Footer Actions */}
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-white/[0.08] pt-6">
+          <div className="flex items-center gap-4 text-xs text-zinc-500">
             <a
               href="https://cosmoserve.space/"
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-1 hover:text-cyan-300 transition underline underline-offset-4"
+              className="hover:text-zinc-200 transition underline underline-offset-4"
             >
-              <span>Visit cosmoserve.space</span>
-              <ExternalLink size={12} />
+              cosmoserve.space
             </a>
             <span>•</span>
             <a
               href="https://aule-adventure.pages.dev/"
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-1 hover:text-cyan-300 transition underline underline-offset-4"
+              className="hover:text-zinc-200 transition underline underline-offset-4"
             >
-              <span>Aule Adventure</span>
-              <ExternalLink size={12} />
+              aule-adventure.pages.dev
             </a>
           </div>
 
           <button
             onClick={onStart}
-            className="w-full sm:w-auto flex items-center justify-center gap-3 rounded-lg border border-cyan-400 bg-gradient-to-r from-cyan-600 via-cyan-500 to-blue-600 px-8 py-3.5 font-display text-base font-bold tracking-widest text-white shadow-lg hover:brightness-110 active:scale-95 transition"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 rounded bg-zinc-100 px-8 py-3 text-sm font-bold tracking-wider text-zinc-950 hover:bg-white active:scale-95 transition shadow-lg"
           >
-            <Play size={18} />
-            <span>LAUNCH MISSION</span>
+            <Play size={16} />
+            <span>LAUNCH SORTIE</span>
           </button>
         </div>
       </div>

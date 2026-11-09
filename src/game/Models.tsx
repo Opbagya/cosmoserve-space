@@ -80,9 +80,9 @@ export function useSpaceMaterials() {
         clearcoatRoughness: 0.05,
       }),
       solarCyanPanels: new THREE.MeshPhysicalMaterial({
-        map: solarCyan,
-        metalness: 0.6,
-        roughness: 0.2,
+        map: solarDeep,
+        metalness: 0.65,
+        roughness: 0.22,
         clearcoat: 0.9,
       }),
       backsheet: new THREE.MeshStandardMaterial({
@@ -91,11 +91,11 @@ export function useSpaceMaterials() {
         roughness: 0.75,
       }),
       sensorLens: new THREE.MeshPhysicalMaterial({
-        color: "#00f2fe",
+        color: "#121b28",
         metalness: 0.1,
         roughness: 0.05,
-        transmission: 0.8,
-        ior: 1.5,
+        transmission: 0.85,
+        ior: 1.55,
       }),
     };
   }, []);
@@ -111,7 +111,7 @@ export function Reviver() {
   const rightWing = useRef<THREE.Group>(null);
   const captureArms = useRef<(THREE.Group | null)[]>([]);
   const thrusterGlow = useRef<THREE.Mesh>(null);
-  const beaconMat = useMemo(() => hdr(0, 4, 6), []);
+  const beaconMat = useMemo(() => hdr(2.2, 2.2, 2.5), []);
 
   const _q = useMemo(() => new THREE.Quaternion(), []);
   const _v = useMemo(() => new THREE.Vector3(), []);
@@ -252,18 +252,18 @@ export function Reviver() {
         rotation={[Math.PI / 2, 0, 0]}
         visible={false}
       >
-        <coneGeometry args={[0.35, 1.4, 16]} />
+        <coneGeometry args={[0.32, 1.3, 16]} />
         <meshBasicMaterial
-          color={new THREE.Color(0.2, 0.8, 1.0)}
+          color={new THREE.Color(0.5, 0.75, 1.0)}
           transparent
-          opacity={0.85}
+          opacity={0.65}
           blending={THREE.AdditiveBlending}
         />
       </mesh>
 
       {/* Navigation Beacon Light */}
       <mesh material={beaconMat} position={[0, 1.22, 0]}>
-        <sphereGeometry args={[0.06, 8, 8]} />
+        <sphereGeometry args={[0.05, 8, 8]} />
       </mesh>
     </group>
   );
@@ -273,7 +273,7 @@ export function Reviver() {
 export function Mothercraft() {
   const mats = useSpaceMaterials();
   const ringRef = useRef<THREE.Group>(null);
-  const dockLightMat = useMemo(() => hdr(0, 5, 2), []);
+  const dockLightMat = useMemo(() => hdr(1.6, 1.5, 1.2), []);
 
   useFrame((_, delta) => {
     // Slowly rotate the habitat module centrifuge
