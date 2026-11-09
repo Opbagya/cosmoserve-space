@@ -73,57 +73,45 @@ export function Briefing({ onStart, onOpenAbout }: BriefingProps) {
         {/* Flight & System Controls */}
         <div className="mt-6 rounded border border-white/[0.08] bg-black/50 p-4">
           <div className="text-[11px] font-mono-tech tracking-widest text-zinc-400 mb-3 uppercase flex items-center justify-between">
-            <span>6-DOF Spacecraft Controls Matrix</span>
-            <span className="text-[10px] text-zinc-500">Keyboard / Touch / Gamepad</span>
+            <span>Reviver Flight & ADR Operations Controls</span>
+            <span className="text-[10px] text-zinc-500">Keyboard / Touch</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-xs">
             <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
-              <span className="text-zinc-400">Pitch (Nose Up/Down)</span>
-              <span className="font-mono-tech text-zinc-100 font-semibold">W / S or ↑ / ↓</span>
+              <span className="text-zinc-400">Forward Thrust (Front)</span>
+              <span className="font-mono-tech text-white font-bold">W or ↑</span>
             </div>
             <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
-              <span className="text-zinc-400">Yaw (Turn Left/Right)</span>
-              <span className="font-mono-tech text-zinc-100 font-semibold">A / D or ← / →</span>
+              <span className="text-zinc-400">Reverse / Brake (Back)</span>
+              <span className="font-mono-tech text-white font-bold">S or ↓</span>
             </div>
             <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
-              <span className="text-zinc-400">Roll (Bank Left/Right)</span>
-              <span className="font-mono-tech text-zinc-100 font-semibold">Q / E</span>
+              <span className="text-zinc-400">Steer Left / Right</span>
+              <span className="font-mono-tech text-white font-bold">A / D or ← / →</span>
             </div>
             <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
-              <span className="text-zinc-400">Forward / Retrograde</span>
-              <span className="font-mono-tech text-zinc-100 font-semibold">R / F</span>
-            </div>
-            <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
-              <span className="text-zinc-400">Sway Left / Right</span>
-              <span className="font-mono-tech text-zinc-100 font-semibold">J / L</span>
-            </div>
-            <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
-              <span className="text-zinc-400">Heave Up / Down</span>
-              <span className="font-mono-tech text-zinc-100 font-semibold">Space / C</span>
-            </div>
-            <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
-              <span className="text-zinc-400">Boost Surge</span>
+              <span className="text-zinc-400">Turbo Boost Surge</span>
               <span className="font-mono-tech text-amber-400 font-semibold">Shift (Hold)</span>
             </div>
             <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
               <span className="text-zinc-400">Soft Robotic Capture</span>
-              <span className="font-mono-tech text-emerald-400 font-bold">E or Click</span>
+              <span className="font-mono-tech text-emerald-400 font-bold">E / Click / Cmd / Alt</span>
             </div>
             <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
               <span className="text-zinc-400">Atmospheric De-Orbit</span>
               <span className="font-mono-tech text-amber-400 font-semibold">Space (in Zone)</span>
             </div>
             <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
-              <span className="text-zinc-400">Undock from Base</span>
-              <span className="font-mono-tech text-zinc-100 font-semibold">Space / R</span>
-            </div>
-            <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
-              <span className="text-zinc-400">RCS Rotational Damper</span>
-              <span className="font-mono-tech text-cyan-300 font-semibold">X (Toggle)</span>
+              <span className="text-zinc-400">Launch from Depot</span>
+              <span className="font-mono-tech text-zinc-100 font-semibold">Space or W</span>
             </div>
             <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
               <span className="text-zinc-400">Cycle Camera View</span>
               <span className="font-mono-tech text-zinc-100 font-semibold">V</span>
+            </div>
+            <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-1.5 border border-white/[0.05]">
+              <span className="text-zinc-400">Mobile Touch Support</span>
+              <span className="font-mono-tech text-zinc-300 font-semibold">Virtual Flight Stick</span>
             </div>
           </div>
         </div>

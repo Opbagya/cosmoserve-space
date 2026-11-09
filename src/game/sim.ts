@@ -15,11 +15,11 @@ export const REENTRY_CORRIDOR_RADIUS = 320;
 
 // Propulsion & Fuel Calibration
 export const FUEL_CAPACITY = 100.0;
-export const TRANS_ACCEL = 18.0; // Responsive arcade forward thrust
-export const BOOST_ACCEL = 40.0; // Turbo boost
-export const ROT_ACCEL = 1.8;   // Smooth steering rate
-export const TRANS_FUEL_RATE = 0.35; // Generous: easily cleans 3+ satellites
-export const BOOST_FUEL_RATE = 0.85;
+export const TRANS_ACCEL = 26.0; // Responsive arcade forward thrust
+export const BOOST_ACCEL = 55.0; // Turbo boost
+export const ROT_ACCEL = 2.0;   // Smooth steering rate
+export const TRANS_FUEL_RATE = 0.32; // Generous: easily cleans 3+ satellites
+export const BOOST_FUEL_RATE = 0.75;
 export const ROT_FUEL_RATE = 0.04;
 export const RECHARGE_RATE = 250.0; // Instantaneous recharge (< 0.4s to 100%)
 
