@@ -97,29 +97,25 @@ export function Game() {
         return;
       }
 
-      // Soft-Robotic Capture: F (Dedicated Robotic Pickup Key!)
+      // Soft-Robotic Capture & Throw: F (Dedicated Robotic Pickup / Throw Key!)
       if (code === "KeyF") {
-        if (sim.canCapture) {
+        if (sim.canCapture && !sim.capturedDebrisId) {
           triggerCapture();
           audio.grappleLock();
         } else if (sim.capturedDebrisId) {
           releaseCapturedDebris(sim.inReentryCorridor);
-          if (sim.inReentryCorridor) {
-            audio.disintegrationExplosion();
-          }
         }
         return;
       }
 
-      // Space / Enter: Undock from Base, or Atmospheric De-Orbit Burn
+      // Space / Enter: Undock from Base, or Throw / Atmospheric De-Orbit Burn
       if (code === "Space" || code === "Enter") {
         if (sim.docked) {
           undock();
           audio.thud(60, 0.35, 0.6);
           audio.voice("Reviver detached. Orbit cleanup sortie active.");
-        } else if (sim.deorbitReady) {
-          releaseCapturedDebris(true);
-          audio.disintegrationExplosion();
+        } else if (sim.capturedDebrisId) {
+          releaseCapturedDebris(sim.inReentryCorridor);
         }
       }
 

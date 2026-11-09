@@ -42,6 +42,8 @@ export interface DebrisTarget {
   massKg: number;
   captured: boolean;
   deorbited: boolean;
+  burning: boolean;
+  thrown: boolean;
   burnProgress: number; // 0 to 1 during atmospheric incineration
   screenPt: { x: number; y: number; on: boolean; dist: number };
 }
@@ -66,6 +68,8 @@ export const INITIAL_DEBRIS: Omit<DebrisTarget, "screenPt">[] = [
     massKg: 1710,
     captured: false,
     deorbited: false,
+    burning: false,
+    thrown: false,
     burnProgress: 0,
   },
   {
@@ -81,6 +85,8 @@ export const INITIAL_DEBRIS: Omit<DebrisTarget, "screenPt">[] = [
     massKg: 1450,
     captured: false,
     deorbited: false,
+    burning: false,
+    thrown: false,
     burnProgress: 0,
   },
   {
@@ -96,6 +102,8 @@ export const INITIAL_DEBRIS: Omit<DebrisTarget, "screenPt">[] = [
     massKg: 890,
     captured: false,
     deorbited: false,
+    burning: false,
+    thrown: false,
     burnProgress: 0,
   },
   {
@@ -111,6 +119,8 @@ export const INITIAL_DEBRIS: Omit<DebrisTarget, "screenPt">[] = [
     massKg: 240,
     captured: false,
     deorbited: false,
+    burning: false,
+    thrown: false,
     burnProgress: 0,
   },
   {
@@ -126,6 +136,8 @@ export const INITIAL_DEBRIS: Omit<DebrisTarget, "screenPt">[] = [
     massKg: 610,
     captured: false,
     deorbited: false,
+    burning: false,
+    thrown: false,
     burnProgress: 0,
   },
 ];
@@ -270,6 +282,8 @@ export function resetSim() {
     angVel: d.angVel.clone(),
     captured: false,
     deorbited: false,
+    burning: false,
+    thrown: false,
     burnProgress: 0,
     screenPt: { x: 0.5, y: 0.5, on: false, dist: 0 },
   }));
@@ -368,43 +382,65 @@ export function triggerCapture() {
   }
 }
 
+/** Trigger roaring atmospheric re-entry burn when debris crosses the disposal zone plane */
+export function igniteDebrisAtmosphericBurn(target: DebrisTarget) {
+  if (target.burning || target.deorbited) return;
+  target.deorbited = true;
+  target.burning = true;
+  target.burnProgress = 0.01;
+
+  // Hypersonic pull down into the dense atmosphere
+  target.vel.y = Math.min(-22.0, target.vel.y - 14.0);
+
+  sim.clearedCount++;
+  sim.score.debrisBonus += 1500;
+  sim.score.total += 1500;
+
+  // Select next available target
+  const nextTarget = sim.debris.find((d) => !d.deorbited && !d.burning && d.id !== target.id);
+  sim.captureTargetId = nextTarget ? nextTarget.id : null;
+
+  sim.flashMessage = `🔥 ATMOSPHERIC INCINERATION: ${target.name.toUpperCase()} CROSSING RE-ENTRY INTERFACE`;
+  sim.flashTimer = 4.0;
+  audio.disintegrationExplosion();
+
+  // Move next corridor to a new orbital entry window
+  randomizeCorridor();
+
+  if (sim.clearedCount >= sim.totalDebris) {
+    setTimeout(() => {
+      sim.screen = "success";
+    }, 4500);
+  }
+}
+
 /** Release grappled debris (normal release or de-orbit atmospheric burn) */
 export function releaseCapturedDebris(isDeorbit: boolean) {
   if (!sim.capturedDebrisId) return;
   const target = sim.debris.find((d) => d.id === sim.capturedDebrisId);
   if (target) {
     target.captured = false;
-    // Release follows craft's actual orientation/momentum
+    target.thrown = true;
+
+    // Release throws debris forcefully along the player's craft aim
     const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(sim.quat);
+    target.vel.copy(sim.vel).addScaledVector(fwd, 26.0);
+    target.angVel.set(
+      (Math.random() - 0.5) * 1.6,
+      (Math.random() - 0.5) * 1.6,
+      (Math.random() - 0.5) * 1.6
+    );
 
-    if (isDeorbit) {
-      target.deorbited = true;
-      target.burnProgress = 0.01;
-      // High-velocity retrograde disposal impulse along craft aim
-      target.vel.copy(sim.vel).addScaledVector(fwd, 24.0);
-      sim.clearedCount++;
-      sim.score.debrisBonus += 1500;
-      sim.score.total += 1500;
+    // Check if thrown already at or below the disposal zone plane
+    const horizDist = Math.hypot(target.pos.x - sim.corridorPos.x, target.pos.z - sim.corridorPos.z);
+    const atOrBelowPlane = target.pos.y <= sim.corridorPos.y + 2.0;
+    const insideCorridor = horizDist <= (sim.corridorRadius + target.radius * 2.0);
 
-      // Select next available target
-      const nextTarget = sim.debris.find((d) => !d.deorbited && d.id !== target.id);
-      sim.captureTargetId = nextTarget ? nextTarget.id : null;
-
-      sim.flashMessage = `${target.name.toUpperCase()} DE-ORBITED · BURNING IN ATMOSPHERE`;
-      sim.flashTimer = 4.0;
-
-      // Move next corridor to a new orbital entry window
-      randomizeCorridor();
-
-      if (sim.clearedCount >= sim.totalDebris) {
-        setTimeout(() => {
-          sim.screen = "success";
-        }, 2500);
-      }
+    if (isDeorbit || (insideCorridor && atOrBelowPlane)) {
+      igniteDebrisAtmosphericBurn(target);
     } else {
-      target.vel.copy(sim.vel).addScaledVector(fwd, 3.5);
-      sim.flashMessage = `${target.name.toUpperCase()} RELEASED`;
-      sim.flashTimer = 2.5;
+      sim.flashMessage = `${target.name.toUpperCase()} THROWN TOWARDS DISPOSAL ZONE · FLAMES IGNITE AT INTERFACE PLANE`;
+      sim.flashTimer = 3.5;
     }
   }
   sim.capturedDebrisId = null;

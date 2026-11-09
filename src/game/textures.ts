@@ -156,3 +156,91 @@ export function getPlasmaFlame() {
     return new THREE.CanvasTexture(c);
   });
 }
+
+/** Tapered supersonic rocket flame jet ribbon (electric cyan & white core) */
+export function getRocketFlameTrail() {
+  return memo("rocketFlameTrail", () => {
+    const [c, g] = canvas(128, 512);
+    // Vertical gradient: full intensity at nozzle (top, y=0), fading to needle tip (bottom, y=512)
+    const grd = g.createLinearGradient(64, 0, 64, 512);
+    grd.addColorStop(0, "rgba(255, 255, 255, 1.0)");
+    grd.addColorStop(0.08, "rgba(210, 245, 255, 0.95)");
+    grd.addColorStop(0.35, "rgba(50, 190, 255, 0.85)");
+    grd.addColorStop(0.7, "rgba(20, 100, 255, 0.4)");
+    grd.addColorStop(1, "rgba(10, 40, 200, 0.0)");
+
+    // Draw aerodynamic tapered jet profile
+    g.fillStyle = grd;
+    g.beginPath();
+    g.moveTo(44, 0);
+    g.quadraticCurveTo(34, 180, 56, 420);
+    g.lineTo(64, 512);
+    g.lineTo(72, 420);
+    g.quadraticCurveTo(94, 180, 84, 0);
+    g.closePath();
+    g.fill();
+
+    // Hot central shock core
+    const coreGrd = g.createLinearGradient(64, 0, 64, 280);
+    coreGrd.addColorStop(0, "rgba(255, 255, 255, 1.0)");
+    coreGrd.addColorStop(0.4, "rgba(240, 250, 255, 0.9)");
+    coreGrd.addColorStop(1, "rgba(150, 230, 255, 0.0)");
+    g.fillStyle = coreGrd;
+    g.beginPath();
+    g.moveTo(56, 0);
+    g.lineTo(60, 280);
+    g.lineTo(68, 280);
+    g.lineTo(72, 0);
+    g.closePath();
+    g.fill();
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  });
+}
+
+/** Massive atmospheric re-entry fire wake ribbon (incandescent yellow/orange/crimson) */
+export function getReentryFlameTrail() {
+  return memo("reentryFlameTrail", () => {
+    const [c, g] = canvas(256, 1024);
+    // Vertical gradient: white/yellow bow shock at top (y=0) to smoky red wake at bottom (y=1024)
+    const grd = g.createLinearGradient(128, 0, 128, 1024);
+    grd.addColorStop(0, "rgba(255, 255, 255, 1.0)");
+    grd.addColorStop(0.06, "rgba(255, 235, 140, 0.98)");
+    grd.addColorStop(0.25, "rgba(255, 130, 20, 0.9)");
+    grd.addColorStop(0.55, "rgba(235, 50, 10, 0.65)");
+    grd.addColorStop(0.85, "rgba(160, 20, 10, 0.25)");
+    grd.addColorStop(1, "rgba(60, 10, 10, 0.0)");
+
+    // Fluid aerodynamic wake outline
+    g.fillStyle = grd;
+    g.beginPath();
+    g.moveTo(70, 0);
+    g.quadraticCurveTo(40, 350, 90, 800);
+    g.lineTo(128, 1024);
+    g.lineTo(166, 800);
+    g.quadraticCurveTo(216, 350, 186, 0);
+    g.closePath();
+    g.fill();
+
+    // Hot incandescent white center spine
+    const spineGrd = g.createLinearGradient(128, 0, 128, 500);
+    spineGrd.addColorStop(0, "rgba(255, 255, 255, 1.0)");
+    spineGrd.addColorStop(0.2, "rgba(255, 250, 200, 0.95)");
+    spineGrd.addColorStop(0.6, "rgba(255, 180, 50, 0.6)");
+    spineGrd.addColorStop(1, "rgba(255, 100, 20, 0.0)");
+    g.fillStyle = spineGrd;
+    g.beginPath();
+    g.moveTo(110, 0);
+    g.lineTo(120, 500);
+    g.lineTo(136, 500);
+    g.lineTo(146, 0);
+    g.closePath();
+    g.fill();
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  });
+}

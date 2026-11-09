@@ -4,11 +4,19 @@ import * as THREE from "three";
 import {
   NOSE_OFFSET,
   SUN_DIR,
+  igniteDebrisAtmosphericBurn,
   sim,
   type DebrisTarget,
   MOTHERCRAFT_DOCK_PORT,
 } from "./sim";
-import { getFoil, getSolar, getGlow, getPlasmaFlame } from "./textures";
+import {
+  getFoil,
+  getSolar,
+  getGlow,
+  getPlasmaFlame,
+  getRocketFlameTrail,
+  getReentryFlameTrail,
+} from "./textures";
 
 const hdr = (r: number, g: number, b: number) =>
   new THREE.MeshBasicMaterial({
@@ -102,161 +110,6 @@ export function useSpaceMaterials() {
 
 export type SpaceMaterials = ReturnType<typeof useSpaceMaterials>;
 
-const rocketPlumeVert = /* glsl */ `
-varying vec2 vUv;
-varying vec3 vNormal;
-varying vec3 vViewPos;
-
-void main() {
-  vUv = uv;
-  vNormal = normalize(normalMatrix * normal);
-  vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
-  vViewPos = -mvPos.xyz;
-  gl_Position = projectionMatrix * mvPos;
-}
-`;
-
-const rocketPlumeFrag = /* glsl */ `
-uniform float uTime;
-uniform float uIntensity;
-uniform float uBoost;
-varying vec2 vUv;
-varying vec3 vNormal;
-varying vec3 vViewPos;
-
-// Fluid hash and value noise for streaming plasma turbulence
-float hash2(vec2 p) {
-  p = fract(p * vec2(234.34, 435.345));
-  p += dot(p, p + 34.23);
-  return fract(p.x * p.y);
-}
-
-float plasmaNoise(vec2 p) {
-  vec2 i = floor(p);
-  vec2 f = fract(p);
-  vec2 u = f * f * (3.0 - 2.0 * f);
-  return mix(
-    mix(hash2(i + vec2(0.0, 0.0)), hash2(i + vec2(1.0, 0.0)), u.x),
-    mix(hash2(i + vec2(0.0, 1.0)), hash2(i + vec2(1.0, 1.0)), u.x),
-    u.y
-  );
-}
-
-void main() {
-  if (uIntensity < 0.01) discard;
-
-  float y = vUv.y; // 0.0 at nozzle base, 1.0 at tail tip
-
-  // Supersonic exhaust velocity stream rushing backwards away from ship
-  float stream = y * 8.0 - uTime * (48.0 + uBoost * 24.0);
-  float n1 = plasmaNoise(vec2(vUv.x * 8.0, stream));
-  float n2 = plasmaNoise(vec2(vUv.x * 16.0, stream * 2.2));
-  float turb = n1 * 0.65 + n2 * 0.35;
-
-  // Mach shock diamond pulsations along the exhaust axis
-  float shock = pow(max(0.0, sin(y * 28.0 - uTime * 42.0)), 6.0) * pow(clamp(1.0 - y, 0.0, 1.0), 0.8);
-
-  // Smooth longitudinal falloff from blazing throat (y=0) to disappearing tail (y=1)
-  float lengthFalloff = pow(clamp(1.0 - y, 0.0, 1.0), 1.4);
-
-  // Soft edge falloff (eliminates hard polygonal silhouette edges)
-  vec3 viewDir = normalize(vViewPos);
-  float rim = clamp(abs(dot(vNormal, viewDir)), 0.0, 1.0);
-  float edgeSoftness = pow(rim, 0.55);
-
-  // Clean aerospace rocket exhaust colors:
-  // - Throat core: Blinding incandescent white
-  // - High-energy core: Electric cyan / ion plasma
-  // - Expanding tail: Deep aerospace sapphire violet fading into deep space
-  vec3 hotWhite = vec3(1.0, 1.0, 1.0);
-  vec3 cyanPlasma = vec3(0.12, 0.78, 1.0);
-  vec3 deepSapphire = vec3(0.08, 0.32, 0.95);
-
-  vec3 col = mix(hotWhite, cyanPlasma, smoothstep(0.0, 0.28, y));
-  col = mix(col, deepSapphire, smoothstep(0.25, 0.92, y));
-
-  // Add incandescent Mach shock diamonds
-  col += hotWhite * shock * 0.65;
-
-  if (uBoost > 0.5) {
-    col = mix(col, vec3(1.0, 1.0, 1.0), 0.4);
-  }
-
-  // Final soft volumetric alpha with organic fluid edges
-  float alpha = lengthFalloff * edgeSoftness * (0.75 + turb * 0.25 + shock * 0.3) * uIntensity;
-  alpha = clamp(alpha, 0.0, 1.0);
-
-  gl_FragColor = vec4(col * (1.3 + uBoost * 0.5), alpha);
-}
-`;
-
-const rocketSteamVert = `
-varying vec2 vUv;
-varying vec3 vNormal;
-varying vec3 vViewPos;
-
-void main() {
-  vUv = uv;
-  vNormal = normalize(normalMatrix * normal);
-  vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
-  vViewPos = -mvPos.xyz;
-  gl_Position = projectionMatrix * mvPos;
-}
-`;
-
-const rocketSteamFrag = `
-uniform float uTime;
-uniform float uIntensity;
-uniform float uBoost;
-varying vec2 vUv;
-varying vec3 vNormal;
-varying vec3 vViewPos;
-
-float hashSteam(vec2 p) {
-  p = fract(p * vec2(123.34, 456.21));
-  p += dot(p, p + 45.32);
-  return fract(p.x * p.y);
-}
-
-float steamNoise(vec2 p) {
-  vec2 i = floor(p);
-  vec2 f = fract(p);
-  vec2 u = f * f * (3.0 - 2.0 * f);
-  return mix(
-    mix(hashSteam(i + vec2(0.0, 0.0)), hashSteam(i + vec2(1.0, 0.0)), u.x),
-    mix(hashSteam(i + vec2(0.0, 1.0)), hashSteam(i + vec2(1.0, 1.0)), u.x),
-    u.y
-  );
-}
-
-void main() {
-  if (uIntensity < 0.01) discard;
-
-  float y = vUv.y;
-  float speed = uTime * (28.0 + uBoost * 16.0);
-  vec2 st1 = vec2(vUv.x * 10.0, y * 5.0 - speed);
-  vec2 st2 = vec2(vUv.x * 20.0 + uTime * 2.0, y * 10.0 - speed * 1.3);
-  float n1 = steamNoise(st1);
-  float n2 = steamNoise(st2);
-  float spray = n1 * 0.65 + n2 * 0.35;
-
-  // Soft vapor feathering
-  float lengthFade = smoothstep(0.0, 0.15, y) * pow(clamp(1.0 - y, 0.0, 1.0), 1.5);
-  vec3 viewDir = normalize(vViewPos);
-  float rim = clamp(abs(dot(vNormal, viewDir)), 0.0, 1.0);
-  float edgeSoftness = pow(rim, 0.55);
-
-  // Subtle cold mist spray color (pale white-cyan cryogenic condensation)
-  vec3 mistColor = mix(vec3(0.92, 0.96, 1.0), vec3(0.45, 0.75, 1.0), y * 0.8);
-
-  // Very delicate opacity ("very little around flame")
-  float alpha = lengthFade * edgeSoftness * (0.12 + spray * 0.12 + uBoost * 0.06) * uIntensity;
-  alpha = clamp(alpha, 0.0, 0.25);
-
-  gl_FragColor = vec4(mistColor, alpha);
-}
-`;
-
 /** The Reviver - Cosmoserve's Active Debris Removal Servicer */
 export function Reviver() {
   const mats = useSpaceMaterials();
@@ -271,60 +124,15 @@ export function Reviver() {
   const rcsBottom = useRef<THREE.Mesh>(null);
   const rcsRetro = useRef<THREE.Mesh>(null);
   const beaconMat = useMemo(() => hdr(2.2, 2.2, 2.5), []);
+  const rocketFlameTex = useMemo(() => getRocketFlameTrail(), []);
+  const glowTex = useMemo(() => getGlow(), []);
 
-  const plumeMat = useMemo(
-    () =>
-      new THREE.ShaderMaterial({
-        vertexShader: rocketPlumeVert,
-        fragmentShader: rocketPlumeFrag,
-        uniforms: {
-          uTime: { value: 0 },
-          uIntensity: { value: 0 },
-          uBoost: { value: 0 },
-        },
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      }),
-    [],
-  );
-
-  const corePlumeMat = useMemo(
-    () =>
-      new THREE.ShaderMaterial({
-        vertexShader: rocketPlumeVert,
-        fragmentShader: rocketPlumeFrag,
-        uniforms: {
-          uTime: { value: 0 },
-          uIntensity: { value: 0 },
-          uBoost: { value: 0 },
-        },
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      }),
-    [],
-  );
-
-  const steamMat = useMemo(
-    () =>
-      new THREE.ShaderMaterial({
-        vertexShader: rocketSteamVert,
-        fragmentShader: rocketSteamFrag,
-        uniforms: {
-          uTime: { value: 0 },
-          uIntensity: { value: 0 },
-          uBoost: { value: 0 },
-        },
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      }),
-    [],
-  );
+  // Aerodynamic flame ribbon geometry: top at (y=0, nozzle), extending down to (y=-4.5, needle tip)
+  const plumeRibbonGeo = useMemo(() => {
+    const geo = new THREE.PlaneGeometry(0.55, 4.5);
+    geo.translate(0, -2.25, 0);
+    return geo;
+  }, []);
 
   const _q = useMemo(() => new THREE.Quaternion(), []);
   const _v = useMemo(() => new THREE.Vector3(), []);
@@ -366,28 +174,15 @@ export function Reviver() {
       }
     });
 
-    // Main Engine Volumetric Rocket Flame (Shader-driven)
+    // Main Engine Volumetric Rocket Flame
     const isForward = (sim.thrustAmount > 0.05 || sim.boosting) && sim.fuel > 0;
-    const intensity = isForward ? (sim.boosting ? 1.0 : 0.85) : 0.0;
-    const boost = sim.boosting ? 1.0 : 0.0;
-
-    plumeMat.uniforms.uTime.value = clock.elapsedTime;
-    plumeMat.uniforms.uIntensity.value = intensity;
-    plumeMat.uniforms.uBoost.value = boost;
-
-    corePlumeMat.uniforms.uTime.value = clock.elapsedTime * 1.3;
-    corePlumeMat.uniforms.uIntensity.value = intensity;
-    corePlumeMat.uniforms.uBoost.value = boost;
-
-    steamMat.uniforms.uTime.value = clock.elapsedTime * 1.1;
-    steamMat.uniforms.uIntensity.value = intensity;
-    steamMat.uniforms.uBoost.value = boost;
 
     if (plumeGroup.current) {
       plumeGroup.current.visible = isForward;
       if (isForward) {
-        const s = sim.boosting ? 1.65 : 1.0;
-        plumeGroup.current.scale.set(1.0, s, 1.0);
+        const zScale = (sim.boosting ? 1.75 : 1.0) * (1.0 + (Math.random() - 0.5) * 0.08);
+        const xyScale = sim.boosting ? 1.25 : 1.0;
+        plumeGroup.current.scale.set(xyScale, xyScale, zScale);
       }
     }
 
@@ -521,22 +316,54 @@ export function Reviver() {
         <meshBasicMaterial color={new THREE.Color(0.9, 0.96, 1.0)} />
       </mesh>
 
-      {/* Photorealistic Volumetric Vacuum Rocket Plume with Cryogenic Steam Spray */}
-      <group ref={plumeGroup} position={[0, 0, -1.35]} rotation={[-Math.PI / 2, 0, 0]} visible={false}>
-        {/* Supersonic Core Shock Column (Blinding incandescent diamond core) */}
-        <mesh material={corePlumeMat} position={[0, 1.1, 0]}>
-          <coneGeometry args={[0.15, 2.2, 32]} />
+      {/* Aerodynamic High-Velocity Rocket Flame Tail (Tapers backward along -Z) */}
+      <group ref={plumeGroup} position={[0, 0, -1.35]} visible={false}>
+        {/* Crossed Jet Ribbon A (X-Z plane) */}
+        <mesh geometry={plumeRibbonGeo} rotation={[Math.PI / 2, 0, 0]}>
+          <meshBasicMaterial
+            map={rocketFlameTex}
+            transparent
+            opacity={0.92}
+            blending={THREE.AdditiveBlending}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
         </mesh>
 
-        {/* Main High-Energy Plasma Flame Tail (Tapers backwards into vacuum) */}
-        <mesh material={plumeMat} position={[0, 1.9, 0]}>
-          <coneGeometry args={[0.30, 3.8, 32]} />
+        {/* Crossed Jet Ribbon B (Y-Z plane) */}
+        <mesh geometry={plumeRibbonGeo} rotation={[Math.PI / 2, 0, Math.PI / 2]}>
+          <meshBasicMaterial
+            map={rocketFlameTex}
+            transparent
+            opacity={0.92}
+            blending={THREE.AdditiveBlending}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
         </mesh>
 
-        {/* Delicate Ethereal Aerosol Cryogenic Vapor Sheath */}
-        <mesh material={steamMat} position={[0, 2.3, 0]}>
-          <coneGeometry args={[0.44, 4.6, 32]} />
+        {/* Needle Mach Shock Diamond Core */}
+        <mesh position={[0, 0, -1.6]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.04, 0.12, 3.2, 16]} />
+          <meshBasicMaterial
+            color={new THREE.Color(0.85, 0.95, 1.0)}
+            transparent
+            opacity={0.88}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+          />
         </mesh>
+
+        {/* Blazing Nozzle Exit Lens Flare */}
+        <sprite position={[0, 0, -0.05]} scale={[1.1, 1.1, 1.1]}>
+          <spriteMaterial
+            map={glowTex}
+            transparent
+            opacity={0.95}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+          />
+        </sprite>
       </group>
 
       {/* 6-DOF RCS Cold-Gas Reaction Nozzles */}
@@ -798,30 +625,42 @@ export function DebrisItem({ target }: { target: DebrisTarget }) {
       forwardOffset.applyQuaternion(sim.quat);
       target.pos.copy(sim.pos).add(forwardOffset);
       target.quat.copy(sim.quat);
-    } else if (target.deorbited) {
+    } else if (target.deorbited || target.burning) {
       // In atmospheric re-entry burn-up sequence
-      target.burnProgress = Math.min(1.0, target.burnProgress + delta * 0.35);
+      target.burnProgress = Math.min(1.0, target.burnProgress + delta * 0.18); // ~5.5s burning descent
+      target.vel.y -= 14.0 * delta; // Accelerate downward into the atmosphere
       target.pos.addScaledVector(target.vel, delta);
 
-      // Expand plasma flame and shrink debris core
-      if (plasmaRef.current) {
-        const plasmaScale = (1.2 + target.burnProgress * 2.5) * target.radius;
-        plasmaRef.current.scale.set(plasmaScale, plasmaScale, plasmaScale * 2.2);
-      }
-      const debrisScale = Math.max(0.001, 1.0 - target.burnProgress);
+      // Shrink and disintegrate debris core
+      const debrisScale = Math.max(0.001, 1.0 - target.burnProgress * 0.85);
       root.current.scale.set(debrisScale, debrisScale, debrisScale);
 
       if (target.burnProgress >= 1.0) {
         root.current.visible = false;
       }
     } else {
-      // Natural tumbling orbit
+      // Natural tumbling orbit / thrown trajectory
       target.pos.addScaledVector(target.vel, delta);
       const ang = target.angVel.length() * delta;
       if (ang > 1e-6) {
         const axis = target.angVel.clone().normalize();
         const dq = new THREE.Quaternion().setFromAxisAngle(axis, ang);
         target.quat.multiply(dq);
+      }
+
+      // Check if debris crossed the disposal zone interface plane
+      if (!target.burning && !target.deorbited) {
+        const dx = target.pos.x - sim.corridorPos.x;
+        const dz = target.pos.z - sim.corridorPos.z;
+        const horizDist = Math.hypot(dx, dz);
+        const yDist = target.pos.y - sim.corridorPos.y;
+
+        const insideCorridor = horizDist <= (sim.corridorRadius + target.radius * 2.5);
+        const crossedPlane = yDist <= 3.0;
+
+        if (insideCorridor && crossedPlane) {
+          igniteDebrisAtmosphericBurn(target);
+        }
       }
     }
 
@@ -1005,19 +844,113 @@ export function DebrisItem({ target }: { target: DebrisTarget }) {
         </group>
       )}
 
-      {/* Atmospheric Reentry Fireball Envelope (Shown when deorbiting) */}
-      {target.deorbited && (
-        <mesh ref={plasmaRef} position={[0, 0, 0]}>
-          <sphereGeometry args={[1.8, 16, 16]} />
-          <meshBasicMaterial
-            color={new THREE.Color(4.0, 1.4, 0.2)}
-            transparent
-            opacity={0.8}
-            blending={THREE.AdditiveBlending}
-            toneMapped={false}
-          />
-        </mesh>
-      )}
+    </group>
+  );
+}
+
+const V_UP = new THREE.Vector3(0, 1, 0);
+
+/** Dedicated World-Space Atmospheric Re-entry Fire Plume & Hypersonic Shockwave */
+export function DebrisReentryFire({ target }: { target: DebrisTarget }) {
+  const root = useRef<THREE.Group>(null);
+  const reentryTex = useMemo(() => getReentryFlameTrail(), []);
+  const plasmaTex = useMemo(() => getPlasmaFlame(), []);
+
+  // Aerodynamic ribbon: top at (y=0, debris), extending backwards down to (y=-1, wake)
+  const ribbonGeo = useMemo(() => {
+    const geo = new THREE.PlaneGeometry(1, 1);
+    geo.translate(0, -0.5, 0);
+    return geo;
+  }, []);
+
+  useFrame(({ clock }) => {
+    if (!root.current) return;
+    const isBurning = (target.burning || target.deorbited) && target.burnProgress < 1.0;
+    root.current.visible = isBurning;
+    if (!isBurning) return;
+
+    // Follow debris position
+    root.current.position.copy(target.pos);
+
+    // Aerodynamic alignment: +Y points along velocity (oncoming air), -Y along wake
+    const velLen = target.vel.length();
+    if (velLen > 0.05) {
+      const velDir = target.vel.clone().normalize();
+      root.current.quaternion.setFromUnitVectors(V_UP, velDir);
+    }
+
+    // Dynamic fire scale: 18m to 36m long roaring flame tail
+    const p = target.burnProgress;
+    const flameLen = 18.0 + p * 22.0;
+    const jitter = 1.0 + Math.sin(clock.elapsedTime * 32.0) * 0.08;
+    const flameWidth = target.radius * (2.8 + p * 2.0) * jitter;
+
+    root.current.scale.set(flameWidth, flameLen, flameWidth);
+  });
+
+  return (
+    <group ref={root} visible={false}>
+      {/* 1. Hypersonic Bow Shock Plasma Cap (Facing oncoming airflow at +Y) */}
+      <mesh position={[0, 0.05, 0]}>
+        <sphereGeometry args={[0.55, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.55]} />
+        <meshBasicMaterial
+          color={new THREE.Color(4.0, 3.2, 1.2)}
+          transparent
+          opacity={0.92}
+          blending={THREE.AdditiveBlending}
+          side={THREE.DoubleSide}
+          toneMapped={false}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* 2. Crossed Trailing Re-entry Flame Ribbons (Shooting backwards along -Y) */}
+      {/* Ribbon A: X-Y plane */}
+      <mesh geometry={ribbonGeo}>
+        <meshBasicMaterial
+          map={reentryTex}
+          transparent
+          opacity={0.95}
+          blending={THREE.AdditiveBlending}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Ribbon B: Z-Y plane */}
+      <mesh geometry={ribbonGeo} rotation={[0, Math.PI / 2, 0]}>
+        <meshBasicMaterial
+          map={reentryTex}
+          transparent
+          opacity={0.95}
+          blending={THREE.AdditiveBlending}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* 3. Incandescent Conical Plasma Wake */}
+      <mesh position={[0, -0.38, 0]} rotation={[Math.PI, 0, 0]}>
+        <coneGeometry args={[0.38, 0.76, 16]} />
+        <meshBasicMaterial
+          color={new THREE.Color(3.5, 1.2, 0.2)}
+          transparent
+          opacity={0.65}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* 4. Blinding Atmospheric Re-entry Core Flare */}
+      <sprite position={[0, 0, 0]} scale={[1.4, 1.4, 1.4]}>
+        <spriteMaterial
+          map={plasmaTex}
+          transparent
+          opacity={0.95}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </sprite>
     </group>
   );
 }
@@ -1028,6 +961,9 @@ export function DebrisField() {
     <group>
       {sim.debris.map((target) => (
         <DebrisItem key={target.id} target={target} />
+      ))}
+      {sim.debris.map((target) => (
+        <DebrisReentryFire key={`fire-${target.id}`} target={target} />
       ))}
     </group>
   );

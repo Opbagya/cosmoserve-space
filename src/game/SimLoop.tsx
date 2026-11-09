@@ -14,10 +14,12 @@ import {
   ROT_ACCEL,
   TRANS_ACCEL,
   TRANS_FUEL_RATE,
+  igniteDebrisAtmosphericBurn,
   releaseCapturedDebris,
   sim,
   triggerCapture,
   undock,
+  type DebrisTarget,
   type ScreenPt,
 } from "./sim";
 
@@ -275,6 +277,27 @@ export function SimLoop() {
       } else {
         audio.setRoar(0);
       }
+
+      // --- DEBRIS RE-ENTRY PLANE CROSSING DETECTION ---
+      sim.debris.forEach((deb) => {
+        if (deb.captured) return;
+
+        // Check if free or thrown debris crosses the disposal zone interface plane
+        if (!deb.burning && !deb.deorbited) {
+          const dx = deb.pos.x - sim.corridorPos.x;
+          const dz = deb.pos.z - sim.corridorPos.z;
+          const horizDist = Math.hypot(dx, dz);
+          const yDist = deb.pos.y - sim.corridorPos.y;
+
+          // Re-entry corridor boundary: horizontal cylinder radius and interface plane
+          const inCorridorCylinder = horizDist <= (sim.corridorRadius + deb.radius * 2.5);
+          const crossedPlane = yDist <= 3.0;
+
+          if (inCorridorCylinder && crossedPlane) {
+            igniteDebrisAtmosphericBurn(deb);
+          }
+        }
+      });
 
       // --- TARGET PROXIMITY, CLOSE RENDEZVOUS & COLLISION DETECTION ---
       const available = sim.debris.filter((d) => !d.deorbited && !d.captured);

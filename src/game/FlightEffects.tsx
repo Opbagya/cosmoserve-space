@@ -6,6 +6,8 @@ import { getGlow, getPlasmaFlame } from "./textures";
 
 const STREAK_COUNT = 180;
 const DUST_COUNT = 120;
+const THRUST_COUNT = 36;
+const EMBER_COUNT = 60;
 
 export function FlightEffects() {
   const glowTex = useMemo(() => getGlow(), []);
@@ -58,8 +60,30 @@ export function FlightEffects() {
     return geo;
   }, []);
 
+  // 3. Dynamic Reviver Engine Exhaust Sparks (shooting backward out of thruster bell)
+  const thrustGeo = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(THRUST_COUNT * 3);
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    return geo;
+  }, []);
+  const thrustVels = useRef<Float32Array>(new Float32Array(THRUST_COUNT * 3));
+  const thrustLives = useRef<Float32Array>(new Float32Array(THRUST_COUNT));
+
+  // 4. Dynamic Atmospheric Re-entry Fire Embers for burning debris
+  const emberGeo = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(EMBER_COUNT * 3);
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    return geo;
+  }, []);
+  const emberVels = useRef<Float32Array>(new Float32Array(EMBER_COUNT * 3));
+  const emberLives = useRef<Float32Array>(new Float32Array(EMBER_COUNT));
+
   const streakLines = useRef<THREE.LineSegments>(null);
   const dustPoints = useRef<THREE.Points>(null);
+  const thrustPoints = useRef<THREE.Points>(null);
+  const emberPoints = useRef<THREE.Points>(null);
 
   useFrame((_, delta) => {
     if (!streakLines.current) return;
@@ -127,6 +151,90 @@ export function FlightEffects() {
       }
       dAttr.needsUpdate = true;
     }
+
+    // 3. Dynamic Reviver Engine Exhaust Sparks
+    const isForward = (sim.thrustAmount > 0.05 || sim.boosting) && sim.fuel > 0;
+    if (thrustPoints.current) {
+      const tPos = (thrustGeo.attributes.position as THREE.BufferAttribute).array as Float32Array;
+      const tVel = thrustVels.current;
+      const tLife = thrustLives.current;
+
+      thrustPoints.current.visible = isForward;
+
+      if (isForward) {
+        // Nozzle position in world space
+        const nozzleOffset = new THREE.Vector3(0, 0, -1.35).applyQuaternion(sim.quat);
+        const nozzlePos = sim.pos.clone().add(nozzleOffset);
+        const rearDir = new THREE.Vector3(0, 0, -1).applyQuaternion(sim.quat);
+        const exhaustSpeed = sim.boosting ? 55.0 : 38.0;
+
+        for (let i = 0; i < THRUST_COUNT; i++) {
+          const idx = i * 3;
+          tLife[i] -= delta * 5.5;
+
+          if (tLife[i] <= 0) {
+            // Respawn at nozzle exit with slight radial dispersion
+            tLife[i] = 0.15 + Math.random() * 0.15;
+            tPos[idx + 0] = nozzlePos.x + (Math.random() - 0.5) * 0.15;
+            tPos[idx + 1] = nozzlePos.y + (Math.random() - 0.5) * 0.15;
+            tPos[idx + 2] = nozzlePos.z + (Math.random() - 0.5) * 0.15;
+
+            // Exhaust velocity vector
+            const spread = (Math.random() - 0.5) * 2.5;
+            const spreadY = (Math.random() - 0.5) * 2.5;
+            tVel[idx + 0] = rearDir.x * exhaustSpeed + spread;
+            tVel[idx + 1] = rearDir.y * exhaustSpeed + spreadY;
+            tVel[idx + 2] = rearDir.z * exhaustSpeed + spread;
+          } else {
+            // Advance particle
+            tPos[idx + 0] += tVel[idx + 0] * delta;
+            tPos[idx + 1] += tVel[idx + 1] * delta;
+            tPos[idx + 2] += tVel[idx + 2] * delta;
+          }
+        }
+        (thrustGeo.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+      }
+    }
+
+    // 4. Dynamic Atmospheric Re-entry Fire Embers for burning debris
+    const burningDebris = sim.debris.filter((d) => (d.burning || d.deorbited) && d.burnProgress < 1.0);
+    if (emberPoints.current) {
+      emberPoints.current.visible = burningDebris.length > 0;
+
+      if (burningDebris.length > 0) {
+        const ePos = (emberGeo.attributes.position as THREE.BufferAttribute).array as Float32Array;
+        const eVel = emberVels.current;
+        const eLife = emberLives.current;
+
+        for (let i = 0; i < EMBER_COUNT; i++) {
+          const idx = i * 3;
+          eLife[i] -= delta * 2.2;
+
+          if (eLife[i] <= 0) {
+            // Pick a burning debris target to emit from
+            const target = burningDebris[i % burningDebris.length];
+            eLife[i] = 0.35 + Math.random() * 0.45;
+
+            // Spawn at target position with radial dispersion
+            ePos[idx + 0] = target.pos.x + (Math.random() - 0.5) * target.radius * 1.5;
+            ePos[idx + 1] = target.pos.y + (Math.random() - 0.5) * target.radius * 1.5;
+            ePos[idx + 2] = target.pos.z + (Math.random() - 0.5) * target.radius * 1.5;
+
+            // Trailing wake velocity (opposite to target velocity)
+            const wakeSpeed = 8.0 + Math.random() * 14.0;
+            const velNorm = target.vel.clone().normalize();
+            eVel[idx + 0] = -velNorm.x * wakeSpeed + (Math.random() - 0.5) * 4.0;
+            eVel[idx + 1] = -velNorm.y * wakeSpeed + (Math.random() - 0.5) * 4.0;
+            eVel[idx + 2] = -velNorm.z * wakeSpeed + (Math.random() - 0.5) * 4.0;
+          } else {
+            ePos[idx + 0] += eVel[idx + 0] * delta;
+            ePos[idx + 1] += eVel[idx + 1] * delta;
+            ePos[idx + 2] += eVel[idx + 2] * delta;
+          }
+        }
+        (emberGeo.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+      }
+    }
   });
 
   return (
@@ -155,34 +263,31 @@ export function FlightEffects() {
         />
       </points>
 
-      {/* Atmospheric Entry Plasma Glow & Embers for De-orbiting Targets */}
-      {sim.debris
-        .filter((d) => d.deorbited && d.burnProgress < 1.0)
-        .map((deb) => (
-          <group key={deb.id} position={deb.pos.toArray()}>
-            <mesh>
-              <sphereGeometry args={[deb.radius * (1.6 + deb.burnProgress * 3.5), 16, 16]} />
-              <meshBasicMaterial
-                map={plasmaTex}
-                transparent
-                opacity={0.9 * (1.0 - deb.burnProgress)}
-                blending={THREE.AdditiveBlending}
-                depthWrite={false}
-              />
-            </mesh>
-            {/* Soft Re-entry Fire Halo */}
-            <mesh>
-              <sphereGeometry args={[deb.radius * (2.8 + deb.burnProgress * 4.5), 12, 12]} />
-              <meshBasicMaterial
-                color="#f97316"
-                transparent
-                opacity={0.35 * (1.0 - deb.burnProgress)}
-                blending={THREE.AdditiveBlending}
-                depthWrite={false}
-              />
-            </mesh>
-          </group>
-        ))}
+      {/* Engine Thruster Exhaust Sparks */}
+      <points ref={thrustPoints} geometry={thrustGeo}>
+        <pointsMaterial
+          size={sim.boosting ? 0.95 : 0.65}
+          map={glowTex}
+          transparent
+          opacity={0.88}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          color={new THREE.Color(0.75, 0.92, 1.0)}
+        />
+      </points>
+
+      {/* Atmospheric Re-entry Fire Embers */}
+      <points ref={emberPoints} geometry={emberGeo}>
+        <pointsMaterial
+          size={1.6}
+          map={plasmaTex}
+          transparent
+          opacity={0.92}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          color={new THREE.Color(1.0, 0.6, 0.15)}
+        />
+      </points>
     </group>
   );
 }

@@ -534,7 +534,7 @@ export function HUD() {
               }}
               className="rounded bg-amber-500 hover:bg-amber-400 text-black font-bold px-3.5 py-1.5 text-xs tracking-wider transition active:scale-95 shadow-md font-mono-tech"
             >
-              {sim.inReentryCorridor ? "DE-ORBIT [SPACE]" : "RELEASE [F]"}
+              {sim.inReentryCorridor ? "DE-ORBIT [SPACE]" : "THROW DEBRIS [F / SPACE]"}
             </button>
           ) : (
             <button
