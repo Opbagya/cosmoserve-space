@@ -12,7 +12,6 @@ import {
   REENTRY_CORRIDOR_POS,
   REENTRY_CORRIDOR_RADIUS,
   ROT_ACCEL,
-  ROT_FUEL_RATE,
   TRANS_ACCEL,
   TRANS_FUEL_RATE,
   releaseCapturedDebris,
@@ -27,7 +26,6 @@ const T2 = new THREE.Vector3();
 const T3 = new THREE.Vector3();
 const DQ = new THREE.Quaternion();
 const CAM_POS = new THREE.Vector3();
-const CAM_TARGET = new THREE.Vector3();
 const PJ = new THREE.Vector3();
 
 function projectToScreen(
@@ -63,7 +61,8 @@ let alarmTimer = 0;
 let rechargeAudioTimer = 0;
 
 export function SimLoop() {
-  const chasePos = useRef(new THREE.Vector3(0, 5, -14));
+  const chasePos = useRef(new THREE.Vector3(0, 4, -12));
+  const currentEuler = useRef(new THREE.Euler(0, 0, 0, "YXZ"));
 
   useFrame((state, rawDelta) => {
     const dt = Math.min(rawDelta, 0.05);
@@ -77,21 +76,26 @@ export function SimLoop() {
       sim.flashTimer -= dt;
     }
 
-    // --- DOCKED AT MOTHERCRAFT ---
+    if (sim.dockCooldown > 0) {
+      sim.dockCooldown -= dt;
+    }
+
+    // --- 1. DOCKED AT MOTHERCRAFT ---
     if (sim.docked) {
       sim.pos.copy(MOTHERCRAFT_DOCK_PORT);
       sim.vel.set(0, 0, 0);
       sim.angVel.set(0, 0, 0);
       sim.quat.identity();
+      currentEuler.current.set(0, 0, 0, "YXZ");
 
-      // Fast Recharging & System Diagnostics
+      // Super-fast Instantaneous Refuel (< 0.4s)
       if (sim.fuel < FUEL_CAPACITY || sim.hull < 100) {
         sim.recharging = true;
         sim.fuel = Math.min(FUEL_CAPACITY, sim.fuel + RECHARGE_RATE * dt);
-        sim.hull = Math.min(100, sim.hull + 80 * dt);
+        sim.hull = Math.min(100, sim.hull + 120 * dt);
 
         rechargeAudioTimer += dt;
-        if (rechargeAudioTimer >= 0.1) {
+        if (rechargeAudioTimer >= 0.08) {
           audio.rechargeHum(sim.fuel / FUEL_CAPACITY);
           rechargeAudioTimer = 0;
         }
@@ -99,14 +103,15 @@ export function SimLoop() {
         sim.recharging = false;
       }
 
+      // Check Launch Inputs (W, Up, Space, or Action)
       const ax = readAxes();
-      if (ax.surge > 0.2 || ax.heave > 0.2 || ax.boost) {
+      if (ax.thrust > 0.1 || ax.boost || ax.action) {
         undock();
-        audio.thud(55, 0.3, 0.5);
-        audio.voice("Reviver detached. Orbit cleanup mission active.");
+        audio.thud(60, 0.35, 0.6);
+        audio.voice("Reviver detached. Orbit cleanup sortie active.");
       }
     } else {
-      // --- FREE FLIGHT ADR OPERATIONS ---
+      // --- 2. ACTIVE FLIGHT OPERATIONS ---
       const ax = readAxes();
       const hasFuel = sim.fuel > 0;
 
@@ -114,18 +119,17 @@ export function SimLoop() {
       sim.distToMothercraft = sim.pos.distanceTo(sim.mothercraftPos);
 
       // Dynamic Return Fuel Calculation
-      // Scales with distance: further away = higher required return burn
       const minReturnFuel = Math.min(
-        88,
-        Math.max(8, (sim.distToMothercraft / 1300) * 45 + 10),
+        80,
+        Math.max(6, (sim.distToMothercraft / 1000) * 35 + 8),
       );
       sim.fuelNeededToReturn = minReturnFuel;
 
       // Bingo Fuel Alert
-      if (sim.fuel <= minReturnFuel + 4 && sim.distToMothercraft > 40) {
+      if (sim.fuel <= minReturnFuel + 3 && sim.distToMothercraft > 35) {
         sim.bingoWarning = true;
         alarmTimer += dt;
-        if (alarmTimer >= 2.5) {
+        if (alarmTimer >= 3.0) {
           audio.bingoWarning();
           alarmTimer = 0;
         }
@@ -133,96 +137,90 @@ export function SimLoop() {
         sim.bingoWarning = false;
       }
 
-      // Check Docking with Mothercraft
+      // Check Re-Docking (ONLY if dockCooldown has expired!)
       const distToDock = sim.pos.distanceTo(MOTHERCRAFT_DOCK_PORT);
-      const relVelToDock = sim.vel.length();
-
-      if (distToDock <= 14.0 && relVelToDock <= 4.2) {
+      if (sim.dockCooldown <= 0 && distToDock <= 18.0) {
         sim.docked = true;
-        sim.flashMessage = "HARD DOCK CONFIRMED · MOTHERCRAFT REFUELING ACTIVE";
-        sim.flashTimer = 4.0;
+        sim.fuel = FUEL_CAPACITY;
+        sim.hull = 100;
+        sim.flashMessage = "DOCKED AT MOTHERCRAFT · REFUELING COMPLETE";
+        sim.flashTimer = 3.5;
         audio.grappleLock();
-        audio.voice("Docking confirmed. Resupply connected.");
+        audio.voice("Docking confirmed. Rapid refueling complete.");
       }
 
-      // --- ROTATION (Body Frame) ---
-      const cmdRot = T1.set(ax.pitch, ax.yaw, ax.roll);
-      const rot = T2.copy(cmdRot).multiplyScalar(hasFuel ? ROT_ACCEL : 0);
+      // --- SIMPLE, RESPONSIVE STEERING ---
+      // Steer left/right with A/D or Arrow Left/Right
+      currentEuler.current.y -= ax.steer * ROT_ACCEL * dt;
+      // Pitch with Q/E
+      currentEuler.current.x = Math.max(
+        -1.2,
+        Math.min(1.2, currentEuler.current.x + ax.pitch * ROT_ACCEL * dt),
+      );
+      // Natural banking roll when turning
+      const targetRoll = -ax.steer * 0.35;
+      currentEuler.current.z += (targetRoll - currentEuler.current.z) * (1 - Math.exp(-6 * dt));
 
-      if (sim.damp && hasFuel) {
-        // Damp rotational rate when no stick input
-        const desired = T3.copy(sim.angVel).multiplyScalar(-2.8);
-        if (Math.abs(cmdRot.x) < 0.1) rot.x += Math.max(-ROT_ACCEL, Math.min(ROT_ACCEL, desired.x));
-        if (Math.abs(cmdRot.y) < 0.1) rot.y += Math.max(-ROT_ACCEL, Math.min(ROT_ACCEL, desired.y));
-        if (Math.abs(cmdRot.z) < 0.1) rot.z += Math.max(-ROT_ACCEL, Math.min(ROT_ACCEL, desired.z));
-      }
+      sim.quat.setFromEuler(currentEuler.current);
 
-      sim.angVel.addScaledVector(rot, dt);
-      sim.thrustRot.copy(rot);
-
-      if (rot.lengthSq() > 0.01 && hasFuel) {
-        sim.fuel = Math.max(0, sim.fuel - ROT_FUEL_RATE * dt);
-      }
-
-      const ang = sim.angVel.length() * dt;
-      if (ang > 1e-7) {
-        DQ.setFromAxisAngle(T3.copy(sim.angVel).normalize(), ang);
-        sim.quat.multiply(DQ).normalize();
-      }
-
-      // --- TRANSLATION (RCS & Boost) ---
+      // --- RESPONSIVE FORWARD FLIGHT ---
       sim.boosting = ax.boost && hasFuel;
-      const transPower = sim.boosting ? BOOST_ACCEL : TRANS_ACCEL;
+      const targetSpeed = sim.boosting
+        ? BOOST_ACCEL
+        : ax.thrust > 0
+        ? TRANS_ACCEL
+        : ax.thrust < 0
+        ? -TRANS_ACCEL * 0.4
+        : 0;
 
-      const cmdTrans = T1.set(ax.sway, ax.heave, ax.surge);
-      if (cmdTrans.lengthSq() > 1.0) cmdTrans.normalize();
+      // Forward vector in facing direction
+      const fwd = T1.set(0, 0, 1).applyQuaternion(sim.quat);
+      const targetVel = T2.copy(fwd).multiplyScalar(hasFuel ? targetSpeed : 0);
 
-      cmdTrans.multiplyScalar(hasFuel ? transPower : 0);
-      sim.thrustWorld.copy(cmdTrans).applyQuaternion(sim.quat);
-      sim.vel.addScaledVector(sim.thrustWorld, dt);
-
-      // Damp linear velocity slightly in orbit to simulate RCS cruise stability
-      sim.vel.multiplyScalar(1 - Math.min(0.2, 0.018 * dt));
-
-      // Advance Position
-      sim.pos.addScaledVector(sim.vel, dt);
-
-      // Consume Fuel
-      if (cmdTrans.lengthSq() > 0.05 && hasFuel) {
+      // Smoothly align craft velocity to heading (arcade responsiveness)
+      if (Math.abs(ax.thrust) > 0.05 || sim.boosting) {
+        sim.vel.lerp(targetVel, 1 - Math.exp(-5.5 * dt));
         const rate = sim.boosting ? BOOST_FUEL_RATE : TRANS_FUEL_RATE;
         sim.fuel = Math.max(0, sim.fuel - rate * dt);
-        audio.setHiss(sim.boosting ? 1.5 : 0.8);
+        audio.setHiss(sim.boosting ? 1.4 : 0.7);
       } else {
+        // Natural gradual orbital deceleration when letting go of throttle
+        sim.vel.multiplyScalar(1 - Math.min(0.4, 0.8 * dt));
         audio.setHiss(0);
       }
+
+      // Advance position
+      sim.pos.addScaledVector(sim.vel, dt);
 
       // Atmospheric Re-entry Corridor Detection
       sim.distToCorridor = sim.pos.distanceTo(REENTRY_CORRIDOR_POS);
       sim.inReentryCorridor = sim.distToCorridor <= REENTRY_CORRIDOR_RADIUS;
       sim.deorbitReady = sim.capturedDebrisId !== null && sim.inReentryCorridor;
 
-      // Atmospheric roar when inside entry corridor
+      // Atmospheric roar sound when in re-entry zone
       if (sim.inReentryCorridor) {
         const proximity = Math.max(0, 1.0 - sim.distToCorridor / REENTRY_CORRIDOR_RADIUS);
-        audio.setRoar(proximity * 0.7);
+        audio.setRoar(proximity * 0.6);
       } else {
         audio.setRoar(0);
       }
 
-      // Soft Robotic Capture Proximity Check
-      const target = sim.debris.find(
-        (d) => !d.deorbited && !d.captured && d.id === sim.captureTargetId,
-      );
-      if (target) {
-        const d = sim.pos.distanceTo(target.pos);
-        const relVel = sim.vel.distanceTo(target.vel);
-        sim.canCapture = d <= 18.0 && relVel <= 3.2;
-      } else {
-        sim.canCapture = false;
+      // Check Closest Debris Target
+      const available = sim.debris.filter((d) => !d.deorbited && !d.captured);
+      let closestDist = Infinity;
+      let closestId: string | null = null;
+      for (const d of available) {
+        const dist = sim.pos.distanceTo(d.pos);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closestId = d.id;
+        }
       }
+      sim.captureTargetId = closestId;
+      sim.canCapture = closestDist <= 35.0;
     }
 
-    // --- PROJECTIONS FOR SLEEK AEROSPACE HUD ---
+    // --- SCREEN PROJECTIONS FOR HUD ---
     projectToScreen(cam, sim.mothercraftPos, sim.mothercraftScreen);
     projectToScreen(cam, REENTRY_CORRIDOR_POS, sim.corridorScreen);
 
@@ -230,30 +228,29 @@ export function SimLoop() {
       projectToScreen(cam, deb.pos, deb.screenPt);
     });
 
-    // --- DYNAMIC CAMERA MODES ---
+    // --- SMOOTH CHASE CAMERA ---
     if (sim.view === 0) {
-      // Cockpit / Boresight Optical Sensor View
-      CAM_POS.set(0, 0.45, 1.8).applyQuaternion(sim.quat).add(sim.pos);
-      CAM_TARGET.set(0, 0, 120).applyQuaternion(sim.quat).add(sim.pos);
-      cam.position.copy(CAM_POS);
-      cam.lookAt(CAM_TARGET);
-      cam.fov = sim.boosting ? 75 : 60;
+      // Optical Bow Sensor Cam
+      const fwd = T1.set(0, 0, 1).applyQuaternion(sim.quat);
+      cam.position.copy(sim.pos).add(fwd.clone().multiplyScalar(1.5));
+      cam.lookAt(T2.copy(sim.pos).add(fwd.clone().multiplyScalar(100)));
+      cam.fov = sim.boosting ? 75 : 62;
       cam.updateProjectionMatrix();
     } else if (sim.view === 1) {
-      // Cinematic Third-Person Chase Cam
-      const offset = T1.set(0, 3.8, -12).applyQuaternion(sim.quat);
-      const targetPos = T2.copy(sim.pos).add(offset);
-      chasePos.current.lerp(targetPos, 1 - Math.exp(-6.5 * dt));
+      // Third-Person Chase Cam (Behind & slightly above)
+      const camOffset = T1.set(0, 3.2, -11).applyQuaternion(sim.quat);
+      const targetCamPos = T2.copy(sim.pos).add(camOffset);
+      chasePos.current.lerp(targetCamPos, 1 - Math.exp(-8 * dt));
 
       cam.position.copy(chasePos.current);
-      const lookLead = T3.copy(sim.vel).multiplyScalar(0.4);
-      cam.lookAt(T1.copy(sim.pos).add(lookLead));
-      cam.fov = sim.boosting ? 72 : 55;
+      // Look slightly ahead of Reviver
+      const lookAhead = T3.set(0, 0.4, 18).applyQuaternion(sim.quat);
+      cam.lookAt(T1.copy(sim.pos).add(lookAhead));
+      cam.fov = sim.boosting ? 70 : 58;
       cam.updateProjectionMatrix();
     } else {
-      // Mothercraft Base Surveillance Cam
-      CAM_POS.set(8, 14, -28).add(sim.mothercraftPos);
-      cam.position.copy(CAM_POS);
+      // Mothercraft Overview Cam
+      cam.position.set(0, 18, -32).add(sim.mothercraftPos);
       cam.lookAt(sim.pos);
       cam.fov = 50;
       cam.updateProjectionMatrix();

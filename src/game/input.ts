@@ -1,29 +1,22 @@
 export interface Axes {
-  pitch: number;
-  yaw: number;
-  roll: number;
-  surge: number; // forward (+1) / back (-1)
-  sway: number; // right (+1) / left (-1)
-  heave: number; // up (+1) / down (-1)
-  boost: boolean;
+  thrust: number; // +1 forward, -1 reverse/brake
+  steer: number;  // -1 left, +1 right (yaw & bank)
+  pitch: number;  // -1 down, +1 up
+  boost: boolean; // turbo boost
+  action: boolean; // space / action
 }
 
 const keys = new Set<string>();
 
 export const touch = {
-  tx: 0,
-  ty: 0,
-  rx: 0,
-  ry: 0,
-  roll: 0,
-  heave: 0,
-  surge: 0,
+  thrust: 0,
+  steer: 0,
+  pitch: 0,
   boost: false,
 };
 
 export function attachKeyboard(onSpecial?: (code: string) => void) {
   const down = (e: KeyboardEvent) => {
-    // Avoid interfering with browser shortcuts like F5 or DevTools
     if (e.code === "F12" || (e.metaKey && e.code === "KeyR")) return;
     keys.add(e.code);
     if (onSpecial) onSpecial(e.code);
@@ -43,47 +36,34 @@ export function attachKeyboard(onSpecial?: (code: string) => void) {
 }
 
 export function readAxes(): Axes {
+  let thrust = 0;
+  let steer = 0;
   let pitch = 0;
-  let yaw = 0;
-  let roll = 0;
-  let surge = 0;
-  let sway = 0;
-  let heave = 0;
   let boost = false;
+  let action = false;
 
-  // Rotation: W/S (Pitch), A/D (Yaw), Q/E (Roll)
-  if (keys.has("KeyW") || keys.has("ArrowUp")) pitch -= 1;
-  if (keys.has("KeyS") || keys.has("ArrowDown")) pitch += 1;
-  if (keys.has("KeyA") || keys.has("ArrowLeft")) yaw += 1;
-  if (keys.has("KeyD") || keys.has("ArrowRight")) yaw -= 1;
-  if (keys.has("KeyQ")) roll += 1;
-  if (keys.has("KeyE")) roll -= 1;
+  // Simple intuitive controls:
+  // Forward / Reverse: W / S or Arrow Up / Down
+  if (keys.has("KeyW") || keys.has("ArrowUp")) thrust += 1;
+  if (keys.has("KeyS") || keys.has("ArrowDown")) thrust -= 1;
 
-  // Translation:
-  // Forward / Retrograde: R / F
-  if (keys.has("KeyR")) surge += 1;
-  if (keys.has("KeyF") || keys.has("ControlLeft") || keys.has("ControlRight")) surge -= 1;
+  // Turn Left / Right: A / D or Arrow Left / Right
+  if (keys.has("KeyA") || keys.has("ArrowLeft")) steer -= 1;
+  if (keys.has("KeyD") || keys.has("ArrowRight")) steer += 1;
 
-  // Sway Left / Right: J / L or mapped keys
-  if (keys.has("KeyJ")) sway -= 1;
-  if (keys.has("KeyL")) sway += 1;
+  // Pitch Nose Up / Down: Q / E or R / F
+  if (keys.has("KeyQ") || keys.has("KeyR")) pitch -= 1; // pitch down
+  if (keys.has("KeyE") || keys.has("KeyF")) pitch += 1; // pitch up
 
-  // Heave Up / Down: Space / C
-  if (keys.has("Space")) heave += 1;
-  if (keys.has("KeyC")) heave -= 1;
-
-  // Boost: Shift
+  // Boost: Shift or Space
   if (keys.has("ShiftLeft") || keys.has("ShiftRight")) boost = true;
+  if (keys.has("Space") || keys.has("Enter")) action = true;
 
   // Touch overrides
-  if (Math.abs(touch.rx) > 0.05) yaw -= touch.rx;
-  if (Math.abs(touch.ry) > 0.05) pitch -= touch.ry;
-  if (touch.roll !== 0) roll += touch.roll;
-
-  if (Math.abs(touch.tx) > 0.05) sway += touch.tx;
-  if (Math.abs(touch.ty) > 0.05) surge += touch.ty;
-  if (touch.heave !== 0) heave += touch.heave;
+  if (Math.abs(touch.thrust) > 0.05) thrust = touch.thrust;
+  if (Math.abs(touch.steer) > 0.05) steer = touch.steer;
+  if (Math.abs(touch.pitch) > 0.05) pitch = touch.pitch;
   if (touch.boost) boost = true;
 
-  return { pitch, yaw, roll, surge, sway, heave, boost };
+  return { thrust, steer, pitch, boost, action };
 }

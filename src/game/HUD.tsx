@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   FUEL_CAPACITY,
-  MOTHERCRAFT_DOCK_PORT,
   releaseCapturedDebris,
   sim,
   triggerCapture,
@@ -15,7 +14,7 @@ import {
   Crosshair,
   Flame,
   Gauge,
-  Radio,
+  Rocket,
   Shield,
   Zap,
 } from "lucide-react";
@@ -36,7 +35,7 @@ export function HUD() {
   const currentTarget = sim.debris.find((d) => d.id === sim.captureTargetId);
   const carriedDebris = sim.debris.find((d) => d.id === sim.capturedDebrisId);
 
-  const isLowFuel = sim.fuel <= sim.fuelNeededToReturn + 4 && !sim.docked;
+  const isLowFuel = sim.fuel <= sim.fuelNeededToReturn + 3 && !sim.docked;
   const isDocked = sim.docked;
 
   return (
@@ -54,16 +53,9 @@ export function HUD() {
 
           <div className="mt-0.5 flex items-baseline gap-5">
             <div>
-              <span className="text-[10px] font-mono-tech tracking-wider text-zinc-500">ALTITUDE</span>
+              <span className="text-[10px] font-mono-tech tracking-wider text-zinc-500">SPEED</span>
               <div className="font-mono-tech text-base sm:text-lg font-medium text-zinc-100">
-                450.2 <span className="text-xs text-zinc-500">KM</span>
-              </div>
-            </div>
-
-            <div>
-              <span className="text-[10px] font-mono-tech tracking-wider text-zinc-500">VELOCITY</span>
-              <div className="font-mono-tech text-base sm:text-lg font-medium text-zinc-100">
-                {sim.vel.length().toFixed(2)} <span className="text-xs text-zinc-500">M/S</span>
+                {sim.vel.length().toFixed(1)} <span className="text-xs text-zinc-500">M/S</span>
               </div>
             </div>
 
@@ -103,16 +95,16 @@ export function HUD() {
 
           <div className="font-mono-tech text-base sm:text-lg font-medium text-zinc-100">
             {isDocked ? (
-              <span className="text-emerald-400 font-semibold tracking-wider">HARD DOCKED</span>
+              <span className="text-emerald-400 font-semibold tracking-wider">DOCKED</span>
             ) : (
               <span>
-                {sim.distToMothercraft.toFixed(1)} <span className="text-xs text-zinc-500">M</span>
+                {sim.distToMothercraft.toFixed(0)} <span className="text-xs text-zinc-500">M</span>
               </span>
             )}
           </div>
 
           <div className="text-[10px] font-mono-tech tracking-wider text-zinc-400">
-            ENTRY CORRIDOR:{" "}
+            DISPOSAL ZONE:{" "}
             <span className={sim.inReentryCorridor ? "text-amber-400 font-bold" : "text-zinc-300"}>
               {sim.distToCorridor.toFixed(0)}M
             </span>
@@ -132,7 +124,7 @@ export function HUD() {
         </div>
       </div>
 
-      {/* --- SLEEK FLOATING TARGET RETICLES --- */}
+      {/* --- FLOATING 3D RETICLES --- */}
       {/* Mothercraft Base Marker */}
       <div
         className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-75"
@@ -143,7 +135,7 @@ export function HUD() {
       >
         <div className="flex flex-col items-center opacity-85">
           <div className="h-5 w-5 rounded-sm border border-zinc-400/60 bg-black/40 flex items-center justify-center text-[9px] font-mono-tech text-zinc-300">
-            BASE
+            DEPOT
           </div>
           <span className="mt-0.5 text-[9px] font-mono-tech tracking-wider text-zinc-400">
             {sim.distToMothercraft.toFixed(0)}M
@@ -189,7 +181,7 @@ export function HUD() {
           >
             <div
               className={`flex flex-col items-center ${
-                deb.id === sim.captureTargetId ? "scale-105 opacity-90" : "opacity-45"
+                deb.id === sim.captureTargetId ? "scale-110 opacity-95" : "opacity-45"
               }`}
             >
               <div
@@ -200,40 +192,41 @@ export function HUD() {
                 }`}
               />
               <span className="mt-1 text-[8px] font-mono-tech tracking-wider text-zinc-300">
-                {deb.screenPt.dist.toFixed(0)}M
+                {deb.name} ({deb.screenPt.dist.toFixed(0)}M)
               </span>
             </div>
           </div>
         ))}
 
-      {/* --- CONTEXTUAL ACTION BANNER --- */}
+      {/* --- CONTEXTUAL ONE-CLICK ACTION BANNER --- */}
       <div className="flex flex-col items-center gap-2">
         {isDocked && (
-          <div className="pointer-events-auto flex items-center gap-4 rounded-md telemetry-panel-elevated px-5 py-2.5 shadow-2xl border border-emerald-500/30">
+          <div className="pointer-events-auto flex items-center gap-4 rounded-md telemetry-panel-elevated px-6 py-3 shadow-2xl border border-white/20">
             <div className="flex items-center gap-2">
-              <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
               <div className="text-xs font-mono-tech tracking-wide text-zinc-200">
-                DOCKED AT BASE · FAST REFUELING COMPLETE
+                DOCKED AT MOTHERCRAFT · FUEL 100% · SYSTEMS READY
               </div>
             </div>
             <button
               onClick={undock}
-              className="rounded bg-zinc-100 hover:bg-white text-zinc-950 font-bold px-4 py-1.5 text-xs tracking-wider transition active:scale-95"
+              className="flex items-center gap-2 rounded bg-white hover:bg-zinc-200 text-black font-bold px-5 py-2 text-xs tracking-wider transition active:scale-95 shadow-md"
             >
-              UNDOCK [SPACE]
+              <Rocket size={14} />
+              <span>LAUNCH [SPACE / W]</span>
             </button>
           </div>
         )}
 
         {!isDocked && sim.deorbitReady && (
-          <div className="pointer-events-auto flex items-center gap-4 rounded-md telemetry-panel-elevated px-5 py-2.5 shadow-2xl border border-amber-500/40">
+          <div className="pointer-events-auto flex items-center gap-4 rounded-md telemetry-panel-elevated px-6 py-3 shadow-2xl border border-amber-500/50">
             <Flame size={16} className="text-amber-400" />
             <div className="text-xs font-mono-tech tracking-wide text-zinc-200">
-              RE-ENTRY CORRIDOR REACHED (~120KM) · READY TO DE-ORBIT
+              DISPOSAL ZONE REACHED (~120KM) · READY TO DE-ORBIT
             </div>
             <button
               onClick={() => releaseCapturedDebris(true)}
-              className="rounded bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-4 py-1.5 text-xs tracking-wider transition active:scale-95"
+              className="rounded bg-amber-500 hover:bg-amber-400 text-black font-bold px-5 py-2 text-xs tracking-wider transition active:scale-95 shadow-md"
             >
               DE-ORBIT BURN [SPACE]
             </button>
@@ -241,16 +234,16 @@ export function HUD() {
         )}
 
         {!isDocked && sim.canCapture && !sim.capturedDebrisId && (
-          <div className="pointer-events-auto flex items-center gap-4 rounded-md telemetry-panel-elevated px-5 py-2.5 shadow-2xl border border-zinc-400/40">
+          <div className="pointer-events-auto flex items-center gap-4 rounded-md telemetry-panel-elevated px-6 py-3 shadow-2xl border border-white/20">
             <Crosshair size={16} className="text-zinc-200" />
             <div className="text-xs font-mono-tech tracking-wide text-zinc-200">
-              TARGET IN CAPTURE RANGE · {currentTarget?.name}
+              TARGET IN RANGE · {currentTarget?.name}
             </div>
             <button
               onClick={triggerCapture}
-              className="rounded bg-zinc-100 hover:bg-white text-zinc-950 font-bold px-4 py-1.5 text-xs tracking-wider transition active:scale-95"
+              className="rounded bg-white hover:bg-zinc-200 text-black font-bold px-5 py-2 text-xs tracking-wider transition active:scale-95 shadow-md"
             >
-              CAPTURE [E]
+              CAPTURE [E / CLICK]
             </button>
           </div>
         )}
@@ -258,7 +251,7 @@ export function HUD() {
         {!isDocked && isLowFuel && (
           <div className="flex items-center gap-2 rounded-md bg-amber-950/80 border border-amber-500/50 px-4 py-2 text-xs font-mono-tech tracking-wider text-amber-200">
             <AlertTriangle size={14} className="text-amber-400" />
-            <span>BINGO FUEL THRESHOLD REACHED · RETURN BURN REQUIRED</span>
+            <span>RETURN TO MOTHERCRAFT REQUIRED FOR RECHARGE</span>
           </div>
         )}
       </div>
@@ -281,9 +274,9 @@ export function HUD() {
             {sim.capturedDebrisId ? (
               <span className="text-amber-400 font-medium">TOWING TO ATMOSPHERIC ENTRY ZONE</span>
             ) : currentTarget ? (
-              `RANGE ${sim.pos.distanceTo(currentTarget.pos).toFixed(1)}M · REL VEL ${sim.vel.distanceTo(currentTarget.vel).toFixed(2)}M/S`
+              `RANGE ${sim.pos.distanceTo(currentTarget.pos).toFixed(0)}M`
             ) : (
-              "SORTIE COMPLETE · DOCK AT MOTHERCRAFT"
+              "SORTIE COMPLETE · DOCK AT BASE"
             )}
           </div>
         </div>
@@ -333,17 +326,24 @@ export function HUD() {
 
           <div className="flex items-center justify-between text-[9px] font-mono-tech text-zinc-500">
             <span>0%</span>
-            <span>CAPACITY: 2–3 SATELLITES</span>
+            <span>W: FORWARD · S: BRAKE · A/D: STEER</span>
             <span>100% (RAPID RECHARGE)</span>
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
-          {sim.capturedDebrisId ? (
+          {isDocked ? (
+            <button
+              onClick={undock}
+              className="rounded bg-white hover:bg-zinc-200 text-black font-bold px-4 py-2 text-xs tracking-wider transition active:scale-95 shadow-md"
+            >
+              LAUNCH [W]
+            </button>
+          ) : sim.capturedDebrisId ? (
             <button
               onClick={() => releaseCapturedDebris(sim.inReentryCorridor)}
-              className="rounded bg-zinc-200 hover:bg-white text-zinc-950 font-bold px-3.5 py-2 text-xs tracking-wider transition active:scale-95"
+              className="rounded bg-zinc-200 hover:bg-white text-zinc-950 font-bold px-4 py-2 text-xs tracking-wider transition active:scale-95"
             >
               {sim.inReentryCorridor ? "DE-ORBIT" : "RELEASE"}
             </button>
@@ -351,147 +351,100 @@ export function HUD() {
             <button
               onClick={triggerCapture}
               disabled={!sim.canCapture}
-              className={`rounded px-3.5 py-2 text-xs font-bold tracking-wider transition active:scale-95 ${
+              className={`rounded px-4 py-2 text-xs font-bold tracking-wider transition active:scale-95 ${
                 sim.canCapture
-                  ? "bg-zinc-200 hover:bg-white text-zinc-950"
+                  ? "bg-white text-black hover:bg-zinc-200"
                   : "bg-zinc-900 border border-white/10 text-zinc-600 cursor-not-allowed"
               }`}
             >
               CAPTURE [E]
             </button>
           )}
-
-          <button
-            onClick={() => {
-              sim.damp = !sim.damp;
-              audio.beep(sim.damp ? 1400 : 700, 0.06);
-            }}
-            className={`rounded px-3 py-2 text-xs font-mono-tech tracking-wider border transition ${
-              sim.damp
-                ? "border-zinc-300 bg-zinc-800 text-zinc-100 font-semibold"
-                : "border-white/10 bg-zinc-950 text-zinc-500"
-            }`}
-          >
-            DAMP
-          </button>
         </div>
       </div>
     </div>
   );
 }
 
-/** Mobile virtual touch sticks */
+/** Simple, intuitive virtual touch controls for mobile */
 export function TouchControls() {
-  const leftStick = useRef<HTMLDivElement>(null);
-  const rightStick = useRef<HTMLDivElement>(null);
-  const [leftK, setLeftK] = useState({ x: 0, y: 0 });
-  const [rightK, setRightK] = useState({ x: 0, y: 0 });
+  const stickRef = useRef<HTMLDivElement>(null);
+  const [knob, setKnob] = useState({ x: 0, y: 0 });
 
-  const handleStick = (
-    e: React.PointerEvent,
-    ref: React.RefObject<HTMLDivElement | null>,
-    setK: (v: { x: number; y: number }) => void,
-    onMove: (x: number, y: number) => void,
-  ) => {
-    if (!ref.current) return;
-    const r = ref.current.getBoundingClientRect();
+  const handlePointer = (e: React.PointerEvent) => {
+    if (!stickRef.current) return;
+    const r = stickRef.current.getBoundingClientRect();
     let x = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
     let y = -(e.clientY - (r.top + r.height / 2)) / (r.height / 2);
-    const m = Math.hypot(x, y);
-    if (m > 1) {
-      x /= m;
-      y /= m;
+    const len = Math.hypot(x, y);
+    if (len > 1) {
+      x /= len;
+      y /= len;
     }
-    setK({ x, y });
-    onMove(Math.abs(x) > 0.12 ? x : 0, Math.abs(y) > 0.12 ? y : 0);
+    setKnob({ x, y });
+    touch.steer = x;
+    touch.thrust = y;
   };
 
-  const endStick = (
-    setK: (v: { x: number; y: number }) => void,
-    onMove: (x: number, y: number) => void,
-  ) => {
-    setK({ x: 0, y: 0 });
-    onMove(0, 0);
+  const endPointer = () => {
+    setKnob({ x: 0, y: 0 });
+    touch.steer = 0;
+    touch.thrust = 0;
   };
 
   return (
-    <div className="fixed inset-x-0 bottom-24 z-30 flex items-end justify-between px-4 pointer-events-none sm:hidden">
-      {/* Left Stick: Translation */}
+    <div className="fixed inset-x-0 bottom-24 z-30 flex items-end justify-between px-6 pointer-events-none sm:hidden">
+      {/* Flight Control Stick: Up/Down for Throttle, Left/Right for Steer */}
       <div className="pointer-events-auto flex flex-col items-center gap-1">
         <div
-          ref={leftStick}
+          ref={stickRef}
           className="relative h-28 w-28 touch-none rounded-full border border-white/20 bg-black/60 backdrop-blur-md"
           onPointerDown={(e) => {
             (e.target as HTMLElement).setPointerCapture(e.pointerId);
-            handleStick(e, leftStick, setLeftK, (x, y) => {
-              touch.tx = x;
-              touch.ty = y;
-            });
+            handlePointer(e);
           }}
-          onPointerMove={(e) =>
-            e.buttons &&
-            handleStick(e, leftStick, setLeftK, (x, y) => {
-              touch.tx = x;
-              touch.ty = y;
-            })
-          }
-          onPointerUp={() => endStick(setLeftK, (x, y) => {
-            touch.tx = x;
-            touch.ty = y;
-          })}
-          onPointerCancel={() => endStick(setLeftK, (x, y) => {
-            touch.tx = x;
-            touch.ty = y;
-          })}
+          onPointerMove={(e) => e.buttons && handlePointer(e)}
+          onPointerUp={endPointer}
+          onPointerCancel={endPointer}
         >
           <div
             className="absolute h-9 w-9 rounded-full bg-white/40 border border-white/60"
             style={{
-              left: `calc(50% + ${leftK.x * 35}px - 18px)`,
-              top: `calc(50% - ${leftK.y * 35}px - 18px)`,
+              left: `calc(50% + ${knob.x * 35}px - 18px)`,
+              top: `calc(50% - ${knob.y * 35}px - 18px)`,
             }}
           />
         </div>
-        <span className="text-[10px] font-mono-tech tracking-wider text-zinc-400">TRANSLATE</span>
+        <span className="text-[10px] font-mono-tech tracking-wider text-zinc-400">
+          THROTTLE / STEER
+        </span>
       </div>
 
-      {/* Right Stick: Rotation */}
-      <div className="pointer-events-auto flex flex-col items-center gap-1">
-        <div
-          ref={rightStick}
-          className="relative h-28 w-28 touch-none rounded-full border border-white/20 bg-black/60 backdrop-blur-md"
-          onPointerDown={(e) => {
-            (e.target as HTMLElement).setPointerCapture(e.pointerId);
-            handleStick(e, rightStick, setRightK, (x, y) => {
-              touch.rx = x;
-              touch.ry = y;
-            });
-          }}
-          onPointerMove={(e) =>
-            e.buttons &&
-            handleStick(e, rightStick, setRightK, (x, y) => {
-              touch.rx = x;
-              touch.ry = y;
-            })
-          }
-          onPointerUp={() => endStick(setRightK, (x, y) => {
-            touch.rx = x;
-            touch.ry = y;
-          })}
-          onPointerCancel={() => endStick(setRightK, (x, y) => {
-            touch.rx = x;
-            touch.ry = y;
-          })}
+      {/* Right Side Action Buttons */}
+      <div className="pointer-events-auto flex flex-col gap-2.5">
+        <button
+          onPointerDown={() => (touch.boost = true)}
+          onPointerUp={() => (touch.boost = false)}
+          className="h-12 w-14 rounded-md border border-white/20 bg-black/60 text-xs font-mono-tech font-bold text-zinc-200 active:bg-white active:text-black transition"
         >
-          <div
-            className="absolute h-9 w-9 rounded-full bg-white/40 border border-white/60"
-            style={{
-              left: `calc(50% + ${rightK.x * 35}px - 18px)`,
-              top: `calc(50% - ${rightK.y * 35}px - 18px)`,
-            }}
-          />
-        </div>
-        <span className="text-[10px] font-mono-tech tracking-wider text-zinc-400">ROTATE</span>
+          BOOST
+        </button>
+
+        {sim.docked ? (
+          <button
+            onClick={undock}
+            className="h-12 w-14 rounded-md bg-white text-black text-xs font-mono-tech font-bold active:scale-95 transition"
+          >
+            LAUNCH
+          </button>
+        ) : (
+          <button
+            onClick={sim.inReentryCorridor ? () => releaseCapturedDebris(true) : triggerCapture}
+            className="h-12 w-14 rounded-md bg-white text-black text-xs font-mono-tech font-bold active:scale-95 transition"
+          >
+            {sim.inReentryCorridor ? "DEORBIT" : "ACTION"}
+          </button>
+        )}
       </div>
     </div>
   );

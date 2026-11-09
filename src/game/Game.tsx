@@ -66,22 +66,32 @@ export function Game() {
       if (sim.screen !== "playing") return;
 
       if (code === "KeyV") cycleView();
-      if (code === "KeyX") {
-        sim.damp = !sim.damp;
-        audio.beep(sim.damp ? 1400 : 700, 0.06);
-      }
       if (code === "KeyE") {
-        triggerCapture();
-        audio.grappleLock();
+        if (sim.canCapture) {
+          triggerCapture();
+          audio.grappleLock();
+        } else if (sim.capturedDebrisId) {
+          releaseCapturedDebris(sim.inReentryCorridor);
+          if (sim.inReentryCorridor) audio.disintegrationExplosion();
+        }
       }
-      if (code === "Space") {
+      if (code === "Space" || code === "Enter") {
         if (sim.docked) {
           undock();
-          audio.thud(55, 0.3, 0.5);
+          audio.thud(60, 0.35, 0.6);
+          audio.voice("Reviver detached. Orbit cleanup sortie active.");
         } else if (sim.deorbitReady) {
           releaseCapturedDebris(true);
           audio.disintegrationExplosion();
+        } else if (sim.canCapture) {
+          triggerCapture();
+          audio.grappleLock();
         }
+      }
+      if (sim.docked && (code === "KeyW" || code === "ArrowUp")) {
+        undock();
+        audio.thud(60, 0.35, 0.6);
+        audio.voice("Reviver detached. Orbit cleanup sortie active.");
       }
     });
   }, []);

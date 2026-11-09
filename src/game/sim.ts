@@ -7,21 +7,21 @@ export const MOTHERCRAFT_RADIUS = 16.0;
 // Earth & Orbital Metrics
 export const EARTH_RADIUS = 20000;
 export const EARTH_CENTER = new THREE.Vector3(0, -21400, -1200);
+
 // Sub-120 km Atmospheric Entry Interface
-export const REENTRY_ALTITUDE_THRESHOLD = 260; // Altitude in sim units where aerodynamic entry occurs
-export const REENTRY_CORRIDOR_POS = new THREE.Vector3(0, -280, 400);
-export const REENTRY_CORRIDOR_RADIUS = 280;
+export const REENTRY_ALTITUDE_THRESHOLD = 260;
+export const REENTRY_CORRIDOR_POS = new THREE.Vector3(0, -140, 220);
+export const REENTRY_CORRIDOR_RADIUS = 320;
 
 // Propulsion & Fuel Calibration
-// Tuned so a full tank easily lasts 2 to 3 de-orbit operations
-export const FUEL_CAPACITY = 100.0; // Delta-V percentage / tank units
-export const TRANS_ACCEL = 1.6; // m/s² normal translation
-export const BOOST_ACCEL = 4.2; // Boost surge
-export const ROT_ACCEL = 0.55; // rad/s² angular
-export const TRANS_FUEL_RATE = 0.48; // Fuel per second under full thrust
-export const BOOST_FUEL_RATE = 1.15; // Fuel per second during boost
-export const ROT_FUEL_RATE = 0.08; // Rotational RCS fuel consumption
-export const RECHARGE_RATE = 180.0; // Rapid recharge (~0.5s to 100%)
+export const FUEL_CAPACITY = 100.0;
+export const TRANS_ACCEL = 18.0; // Responsive arcade forward thrust
+export const BOOST_ACCEL = 40.0; // Turbo boost
+export const ROT_ACCEL = 1.8;   // Smooth steering rate
+export const TRANS_FUEL_RATE = 0.35; // Generous: easily cleans 3+ satellites
+export const BOOST_FUEL_RATE = 0.85;
+export const ROT_FUEL_RATE = 0.04;
+export const RECHARGE_RATE = 250.0; // Instantaneous recharge (< 0.4s to 100%)
 
 export const SUN_DIR = new THREE.Vector3(0.92, 0.35, 0.16).normalize();
 
@@ -56,8 +56,8 @@ export const INITIAL_DEBRIS: Omit<DebrisTarget, "screenPt">[] = [
     name: "SLV Spent Upper Stage",
     type: "rocket_stage",
     description: "Depleted rocket booster casing in decaying elliptical orbit.",
-    pos: new THREE.Vector3(120, 45, 380),
-    vel: new THREE.Vector3(0.1, -0.05, 0.08),
+    pos: new THREE.Vector3(40, 10, 110),
+    vel: new THREE.Vector3(0.02, 0.01, 0.02),
     quat: new THREE.Quaternion(),
     angVel: new THREE.Vector3(0.04, 0.08, 0.02),
     radius: 4.5,
@@ -71,8 +71,8 @@ export const INITIAL_DEBRIS: Omit<DebrisTarget, "screenPt">[] = [
     name: "Pixxel EarthObs-1 (Dead Bus)",
     type: "defunct_sat",
     description: "Decommissioned multi-spectral satellite with stuck solar boom.",
-    pos: new THREE.Vector3(-240, 80, 520),
-    vel: new THREE.Vector3(-0.06, 0.04, -0.02),
+    pos: new THREE.Vector3(-60, -15, 180),
+    vel: new THREE.Vector3(-0.02, 0.01, -0.01),
     quat: new THREE.Quaternion(),
     angVel: new THREE.Vector3(0.06, 0.02, 0.05),
     radius: 3.2,
@@ -86,10 +86,10 @@ export const INITIAL_DEBRIS: Omit<DebrisTarget, "screenPt">[] = [
     name: "ComSat Solar Array Truss",
     type: "solar_wing",
     description: "Severed photovoltaic wing reflecting high-intensity glare.",
-    pos: new THREE.Vector3(340, -60, 680),
-    vel: new THREE.Vector3(0.05, 0.02, 0.07),
+    pos: new THREE.Vector3(85, 20, 260),
+    vel: new THREE.Vector3(0.02, -0.01, 0.02),
     quat: new THREE.Quaternion(),
-    angVel: new THREE.Vector3(0.12, 0.04, 0.08),
+    angVel: new THREE.Vector3(0.08, 0.03, 0.05),
     radius: 3.8,
     massKg: 210,
     captured: false,
@@ -101,10 +101,10 @@ export const INITIAL_DEBRIS: Omit<DebrisTarget, "screenPt">[] = [
     name: "Fengyun High-Risk Fragment",
     type: "shrapnel_cluster",
     description: "Tumbling hypervelocity jagged titanium shrapnel cluster.",
-    pos: new THREE.Vector3(-180, -90, 890),
-    vel: new THREE.Vector3(0.08, -0.06, 0.03),
+    pos: new THREE.Vector3(-80, 25, 340),
+    vel: new THREE.Vector3(0.03, -0.02, 0.01),
     quat: new THREE.Quaternion(),
-    angVel: new THREE.Vector3(0.18, 0.15, 0.1),
+    angVel: new THREE.Vector3(0.12, 0.1, 0.08),
     radius: 2.6,
     massKg: 95,
     captured: false,
@@ -116,10 +116,10 @@ export const INITIAL_DEBRIS: Omit<DebrisTarget, "screenPt">[] = [
     name: "Legacy NavSat Transponder",
     type: "sensor_bus",
     description: "Spin-stabilized navigation satellite with dead battery cells.",
-    pos: new THREE.Vector3(260, 110, 1150),
-    vel: new THREE.Vector3(-0.04, 0.05, -0.05),
+    pos: new THREE.Vector3(100, -20, 420),
+    vel: new THREE.Vector3(-0.02, 0.02, -0.02),
     quat: new THREE.Quaternion(),
-    angVel: new THREE.Vector3(0.03, 0.09, 0.04),
+    angVel: new THREE.Vector3(0.03, 0.06, 0.04),
     radius: 3.4,
     massKg: 520,
     captured: false,
@@ -152,6 +152,7 @@ export const sim = {
   mothercraftPos: new THREE.Vector3(0, 0, 0),
   mothercraftQuat: new THREE.Quaternion(),
   docked: true, // Starts attached to Mothercraft
+  dockCooldown: 0, // Prevents instant re-docking loop!
   recharging: false,
   rechargeProgress: 0,
   distToMothercraft: 0,
@@ -175,7 +176,7 @@ export const sim = {
   totalDebris: 5,
 
   // Mission Log & Events
-  flashMessage: "DOCKED AT MOTHERCRAFT · PRESS [SPACE] TO UNDOCK",
+  flashMessage: "DOCKED AT MOTHERCRAFT · PRESS [SPACE] OR CLICK LAUNCH",
   flashTimer: 4.0,
   failReason: "",
   score: {
@@ -209,6 +210,7 @@ export function resetSim() {
   sim.boosting = false;
 
   sim.docked = true;
+  sim.dockCooldown = 0;
   sim.recharging = false;
   sim.rechargeProgress = 0;
   sim.distToMothercraft = 0;
@@ -236,7 +238,7 @@ export function resetSim() {
     screenPt: { x: 0.5, y: 0.5, on: false, dist: 0 },
   }));
 
-  sim.flashMessage = "DOCKED AT MOTHERCRAFT · PRESS [SPACE] OR FORWARD THRUST TO UNDOCK";
+  sim.flashMessage = "DOCKED AT MOTHERCRAFT · PRESS [SPACE] OR CLICK LAUNCH";
   sim.flashTimer = 5.0;
   sim.score = {
     total: 0,
@@ -247,41 +249,55 @@ export function resetSim() {
   };
 }
 
-/** Undock from Mothercraft */
+/** Undock from Mothercraft - cleanly moves player forward and starts flight */
 export function undock() {
   if (!sim.docked) return;
   sim.docked = false;
   sim.recharging = false;
-  // Apply a gentle forward push away from the docking port
-  sim.vel.set(0, 0, 2.5).applyQuaternion(sim.quat);
-  sim.flashMessage = "REVIVER SEPARATION CONFIRMED · COMMENCING ADR SORTIE";
+  sim.dockCooldown = 5.0; // 5-second cooldown so you CANNOT accidentally re-dock immediately!
+  
+  // Position ship cleanly 40 meters forward outside the docking collar
+  sim.pos.copy(MOTHERCRAFT_DOCK_PORT).add(new THREE.Vector3(0, 0, 35));
+  sim.quat.identity();
+  // Set forward velocity directly towards Target 1
+  sim.vel.set(0, 0, 18);
+  
+  sim.flashMessage = "LAUNCH CONFIRMED · FLYING FORWARD TOWARDS DEBRIS";
   sim.flashTimer = 3.5;
 }
 
 /** Trigger Soft Robotic Capture mechanism */
 export function triggerCapture() {
   if (sim.capturedDebrisId) {
-    // Release debris (e.g. if player wants to drop it or transfer it)
+    // Release debris
     releaseCapturedDebris(false);
     return;
   }
 
-  // Check if any target is in range and aligned
-  const target = sim.debris.find((d) => !d.deorbited && !d.captured && d.id === sim.captureTargetId);
-  if (!target) return;
+  // Find nearest valid debris target
+  const available = sim.debris.filter((d) => !d.deorbited && !d.captured);
+  let closest: DebrisTarget | null = null;
+  let minDist = Infinity;
 
-  const d = sim.pos.distanceTo(target.pos);
-  const relVel = sim.vel.distanceTo(target.vel);
+  for (const d of available) {
+    const dist = sim.pos.distanceTo(d.pos);
+    if (dist < minDist) {
+      minDist = dist;
+      closest = d;
+    }
+  }
 
-  if (d <= 18.0 && relVel <= 3.2) {
-    target.captured = true;
-    sim.capturedDebrisId = target.id;
+  if (closest && minDist <= 35.0) {
+    closest.captured = true;
+    sim.capturedDebrisId = closest.id;
     sim.captureArmState = 1.0;
-    sim.flashMessage = `TARGET GRAPPLED: ${target.name.toUpperCase()} · TRANSIT TO ATMOSPHERIC ENTRY CORRIDOR`;
-    sim.flashTimer = 4.5;
+    sim.flashMessage = `GRAPPLED: ${closest.name.toUpperCase()} · FLY TO DISPOSAL ZONE`;
+    sim.flashTimer = 4.0;
   } else {
-    sim.flashMessage = `CAPTURE FAILED: RANGE ${d.toFixed(1)}m (REQ <18m) · VEL ${relVel.toFixed(2)}m/s (REQ <3.2m/s)`;
-    sim.flashTimer = 2.5;
+    sim.flashMessage = closest
+      ? `GET CLOSER: RANGE ${minDist.toFixed(0)}M (NEED <35M)`
+      : `NO TARGET IN RANGE`;
+    sim.flashTimer = 2.0;
   }
 }
 
@@ -294,10 +310,8 @@ export function releaseCapturedDebris(isDeorbit: boolean) {
     if (isDeorbit) {
       target.deorbited = true;
       target.burnProgress = 0.01;
-      // Kick debris into retrograde reentry trajectory
-      target.vel.set(0, -12, 18);
-      // Give Reviver a positive prograde kick upward to safe orbit
-      sim.vel.add(new THREE.Vector3(0, 8, -6));
+      // Kick debris downwards into atmospheric entry
+      target.vel.set(0, -15, 20);
       sim.clearedCount++;
       sim.score.debrisBonus += 1500;
       sim.score.total += 1500;
@@ -306,17 +320,17 @@ export function releaseCapturedDebris(isDeorbit: boolean) {
       const nextTarget = sim.debris.find((d) => !d.deorbited && d.id !== target.id);
       sim.captureTargetId = nextTarget ? nextTarget.id : null;
 
-      sim.flashMessage = `DE-ORBIT BURN EXECUTED: ${target.name} ENTERING ATMOSPHERIC ENTRY INTERFACE`;
-      sim.flashTimer = 4.5;
+      sim.flashMessage = `${target.name.toUpperCase()} DE-ORBITED · DISPERSED IN ATMOSPHERE`;
+      sim.flashTimer = 4.0;
 
       if (sim.clearedCount >= sim.totalDebris) {
         setTimeout(() => {
           sim.screen = "success";
-        }, 3000);
+        }, 2500);
       }
     } else {
-      sim.flashMessage = `${target.name.toUpperCase()} RELEASED INTO FREE DRIFT`;
-      sim.flashTimer = 3.0;
+      sim.flashMessage = `${target.name.toUpperCase()} RELEASED`;
+      sim.flashTimer = 2.5;
     }
   }
   sim.capturedDebrisId = null;
