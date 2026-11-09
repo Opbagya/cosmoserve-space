@@ -152,6 +152,9 @@ export const sim = {
   damp: true,
   view: 1, // 0: Cockpit/Sensor, 1: Third-person Chase, 2: Mothercraft Base Cam
   boosting: false,
+  invertPitch: false, // Standard: W = nose down (-1), S = nose up (+1)
+  sensitivity: 1.0,   // Control rate multiplier (0.5x to 2.0x)
+  particlesHigh: true,// Enhanced thruster vapor and particles
 
   // Mothercraft & Docking
   mothercraftPos: new THREE.Vector3(0, 0, 0),
@@ -345,4 +348,36 @@ export function releaseCapturedDebris(isDeorbit: boolean) {
   }
   sim.capturedDebrisId = null;
   sim.captureArmState = 0.0;
+}
+
+/** Emergency Dock at Mothercraft Depot */
+export function emergencyDock() {
+  if (sim.capturedDebrisId) {
+    releaseCapturedDebris(false);
+  }
+  sim.docked = true;
+  sim.recharging = false;
+  sim.fuel = FUEL_CAPACITY;
+  sim.hull = 100;
+  sim.pos.copy(MOTHERCRAFT_DOCK_PORT);
+  sim.vel.set(0, 0, 0);
+  sim.angVel.set(0, 0, 0);
+  sim.quat.identity();
+  sim.flashMessage = "EMERGENCY DOCK: CRAFT SECURED AT MOTHERCRAFT · REFUEL COMPLETE";
+  sim.flashTimer = 4.0;
+}
+
+/** Return to Main Landing Webpage */
+export function returnToMainMenu() {
+  if (sim.capturedDebrisId) {
+    releaseCapturedDebris(false);
+  }
+  sim.screen = "briefing";
+  sim.docked = true;
+  sim.recharging = false;
+  sim.fuel = FUEL_CAPACITY;
+  sim.pos.copy(MOTHERCRAFT_DOCK_PORT);
+  sim.vel.set(0, 0, 0);
+  sim.angVel.set(0, 0, 0);
+  sim.quat.identity();
 }

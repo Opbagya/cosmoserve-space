@@ -152,20 +152,23 @@ export function SimLoop() {
       }
 
       // --- 3D ROTATIONAL ATTITUDE & STEERING ---
+      const pitchSign = sim.invertPitch ? -1 : 1;
+      const sens = Math.max(0.4, Math.min(2.5, sim.sensitivity || 1.0));
+
       // Pitch: W = Nose Down, S = Nose Up
       currentEuler.current.x = Math.max(
         -1.35,
-        Math.min(1.35, currentEuler.current.x + ax.pitch * ROT_ACCEL * dt),
+        Math.min(1.35, currentEuler.current.x + ax.pitch * pitchSign * ROT_ACCEL * sens * dt),
       );
 
       // Yaw: ArrowLeft / A = Turn Left (-1), ArrowRight / D = Turn Right (+1)
-      currentEuler.current.y += ax.steer * ROT_ACCEL * dt;
+      currentEuler.current.y += ax.steer * ROT_ACCEL * sens * dt;
 
       // Roll: Natural banking into the turn (Left = +Z wing-down, Right = -Z wing-down)
       const targetRoll = -ax.steer * 0.45;
       currentEuler.current.z += (targetRoll - currentEuler.current.z) * (1 - Math.exp(-6.5 * dt));
       if (Math.abs(ax.roll) > 0.1) {
-        currentEuler.current.z -= ax.roll * ROT_ACCEL * dt;
+        currentEuler.current.z -= ax.roll * ROT_ACCEL * sens * dt;
       }
 
       // RCS Rotational Damper (toggled by X)

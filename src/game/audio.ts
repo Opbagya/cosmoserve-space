@@ -21,6 +21,39 @@ function env(g: GainNode, t: number, peak: number, a: number, d: number) {
 }
 
 export const audio = {
+  masterVolume: 0.85,
+  musicVolume: 0.75,
+  sfxVolume: 0.85,
+  voiceEnabled: true,
+
+  setMasterVolume(val: number) {
+    this.masterVolume = Math.max(0, Math.min(1, val));
+    if (master && ctx) {
+      master.gain.setTargetAtTime(this.masterVolume, ctx.currentTime, 0.05);
+    }
+  },
+
+  setMusicVolume(val: number) {
+    this.musicVolume = Math.max(0, Math.min(1, val));
+    if (musicGain && ctx) {
+      musicGain.gain.setTargetAtTime(this.musicVolume * 0.42, ctx.currentTime, 0.08);
+    }
+  },
+
+  setSfxVolume(val: number) {
+    this.sfxVolume = Math.max(0, Math.min(1, val));
+    if (hiss && ctx) {
+      hiss.gain.setTargetAtTime(0, ctx.currentTime, 0.05);
+    }
+  },
+
+  setVoiceEnabled(val: boolean) {
+    this.voiceEnabled = val;
+    if (!val && typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  },
+
   init() {
     if (ctx) {
       if (ctx.state === "suspended") void ctx.resume();
@@ -83,12 +116,12 @@ export const audio = {
 
   setHiss(v: number) {
     if (!ctx) return;
-    hiss.gain.setTargetAtTime(Math.min(0.14, v * 0.06), ctx.currentTime, 0.05);
+    hiss.gain.setTargetAtTime(Math.min(0.14, v * 0.06 * this.sfxVolume), ctx.currentTime, 0.05);
   },
 
   setRoar(v: number) {
     if (!ctx) return;
-    roar.gain.setTargetAtTime(Math.min(0.3, v * 0.2), ctx.currentTime, 0.08);
+    roar.gain.setTargetAtTime(Math.min(0.3, v * 0.2 * this.sfxVolume), ctx.currentTime, 0.08);
   },
 
   /** Sub-bass impulse when firing main thrusters or boost */
@@ -100,7 +133,7 @@ export const audio = {
     o.type = "sine";
     o.frequency.setValueAtTime(freq, t);
     o.frequency.exponentialRampToValueAtTime(22, t + duration);
-    env(g, t, vol, 0.015, duration);
+    env(g, t, vol * this.sfxVolume, 0.015, duration);
     o.connect(g).connect(master);
     o.start(t);
     o.stop(t + duration + 0.05);
@@ -114,7 +147,7 @@ export const audio = {
     const g = ctx.createGain();
     o.type = "sine";
     o.frequency.setValueAtTime(freq, t);
-    env(g, t, vol, 0.005, duration);
+    env(g, t, vol * this.sfxVolume, 0.005, duration);
     o.connect(g).connect(master);
     o.start(t);
     o.stop(t + duration + 0.02);
@@ -129,7 +162,7 @@ export const audio = {
     o.type = "triangle";
     o.frequency.setValueAtTime(740, t);
     o.frequency.setValueAtTime(580, t + 0.12);
-    env(g, t, 0.12, 0.01, 0.22);
+    env(g, t, 0.12 * this.sfxVolume, 0.01, 0.22);
     o.connect(g).connect(master);
     o.start(t);
     o.stop(t + 0.25);
@@ -145,7 +178,7 @@ export const audio = {
     s.type = "sine";
     s.frequency.setValueAtTime(260, t);
     s.frequency.exponentialRampToValueAtTime(620, t + 0.22);
-    env(sg, t, 0.2, 0.02, 0.22);
+    env(sg, t, 0.2 * this.sfxVolume, 0.02, 0.22);
     s.connect(sg).connect(master);
     s.start(t);
     s.stop(t + 0.26);
@@ -211,6 +244,7 @@ export const audio = {
 
   /** Mission Control Voice Callout */
   voice(text: string) {
+    if (!this.voiceEnabled) return;
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     try {
       window.speechSynthesis.cancel();

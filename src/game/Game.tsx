@@ -1,19 +1,23 @@
 import { useEffect, useState } from "react";
 import { audio } from "./audio";
 import { attachKeyboard } from "./input";
-import { resetSim, sim, undock, triggerCapture, releaseCapturedDebris } from "./sim";
+import { resetSim, sim, undock, triggerCapture, releaseCapturedDebris, returnToMainMenu } from "./sim";
 import { SpaceScene } from "./Scene";
 import { HUD, TouchControls, useTick } from "./HUD";
-import { Briefing } from "./Briefing";
+import { LandingPage } from "./LandingPage";
+import { OperationsMenu } from "./OperationsMenu";
 import { CosmoserveModal } from "./CosmoserveModal";
 import {
   Camera,
   ExternalLink,
+  Home,
   Info,
+  Menu,
   Music2,
   Pause,
   Play,
   RotateCcw,
+  Sliders,
   VolumeX,
 } from "lucide-react";
 
@@ -153,7 +157,7 @@ export function Game() {
 
           <button
             onClick={cycleView}
-            title="Cycle Camera View"
+            title="Cycle Camera View (V)"
             className="flex h-8 w-8 items-center justify-center rounded border border-white/10 bg-black/50 text-zinc-300 hover:text-white hover:bg-white/10 active:scale-95 transition backdrop-blur-md"
           >
             <Camera size={14} />
@@ -169,10 +173,11 @@ export function Game() {
 
           <button
             onClick={togglePause}
-            title="Pause Flight"
-            className="flex h-8 w-8 items-center justify-center rounded border border-white/10 bg-black/50 text-zinc-300 hover:text-white hover:bg-white/10 active:scale-95 transition backdrop-blur-md"
+            title="Flight Operations & Settings Menu (ESC / P)"
+            className="flex h-8 items-center gap-1.5 px-3 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 active:scale-95 transition backdrop-blur-md text-xs font-mono-tech tracking-wider font-semibold"
           >
-            <Pause size={14} />
+            <Menu size={13} />
+            <span>MENU (ESC)</span>
           </button>
         </div>
       )}
@@ -180,47 +185,21 @@ export function Game() {
       {/* Mobile Virtual Sticks */}
       {s === "playing" && isTouch && <TouchControls />}
 
-      {/* Mission Briefing Modal */}
+      {/* Cosmoserve Space Landing Webpage */}
       {s === "briefing" && (
-        <Briefing onStart={startMission} onOpenAbout={() => setAboutOpen(true)} />
+        <LandingPage onStart={startMission} onOpenAbout={() => setAboutOpen(true)} />
       )}
 
       {/* About Cosmoserve Modal */}
       {aboutOpen && <CosmoserveModal onClose={() => setAboutOpen(false)} />}
 
-      {/* Paused Menu */}
+      {/* Full-featured Flight Operations & Settings Menu (ESC button) */}
       {s === "paused" && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-          <div className="w-full max-w-sm rounded-lg border border-white/10 bg-[#090b10] p-6 text-center shadow-2xl">
-            <h2 className="font-mono-tech text-xs tracking-[0.25em] text-zinc-400 uppercase">
-              Flight Operations
-            </h2>
-            <div className="mt-1 font-display text-2xl font-bold tracking-tight text-white">
-              SIMULATION PAUSED
-            </div>
-            <p className="mt-2 text-xs text-zinc-400 leading-relaxed">
-              Orbital telemetry frozen. Reviver in automated attitude hold.
-            </p>
-
-            <div className="mt-6 flex flex-col gap-2.5">
-              <button
-                onClick={togglePause}
-                className="flex items-center justify-center gap-2 rounded bg-zinc-100 hover:bg-white py-2.5 text-xs font-bold tracking-wider text-zinc-950 transition active:scale-98"
-              >
-                <Play size={14} />
-                <span>RESUME SORTIE</span>
-              </button>
-
-              <button
-                onClick={startMission}
-                className="flex items-center justify-center gap-2 rounded border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] py-2 text-xs font-mono-tech tracking-wider text-zinc-300 transition"
-              >
-                <RotateCcw size={13} />
-                <span>RESTART MISSION</span>
-              </button>
-            </div>
-          </div>
-        </div>
+        <OperationsMenu
+          onResume={togglePause}
+          onRestart={startMission}
+          onOpenAbout={() => setAboutOpen(true)}
+        />
       )}
 
       {/* Mission Complete Victory Screen */}
@@ -286,12 +265,25 @@ export function Game() {
                 <ExternalLink size={13} />
               </a>
 
-              <button
-                onClick={startMission}
-                className="w-full sm:w-auto rounded border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] px-5 py-2.5 text-xs font-mono-tech tracking-wider text-zinc-300 transition"
-              >
-                FLY SORTIE AGAIN
-              </button>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  onClick={() => {
+                    returnToMainMenu();
+                    audio.stopMusic();
+                    setRun((r) => r + 1);
+                  }}
+                  className="w-full sm:w-auto rounded border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] px-4 py-2.5 text-xs font-mono-tech tracking-wider text-zinc-300 transition"
+                >
+                  EXIT TO WEBPAGE
+                </button>
+
+                <button
+                  onClick={startMission}
+                  className="w-full sm:w-auto rounded bg-white/10 hover:bg-white/15 px-5 py-2.5 text-xs font-mono-tech tracking-wider text-zinc-100 transition"
+                >
+                  FLY SORTIE AGAIN
+                </button>
+              </div>
             </div>
           </div>
         </div>
