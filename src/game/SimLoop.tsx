@@ -149,17 +149,27 @@ export function SimLoop() {
         audio.voice("Docking confirmed. Rapid refueling complete.");
       }
 
-      // --- SIMPLE, RESPONSIVE STEERING ---
+      // --- SIMPLE, RESPONSIVE STEERING & FLIGHT ---
+      sim.thrustAmount = ax.thrust;
+      sim.steerAmount = ax.steer;
+
       // Steer left/right with A/D or Arrow Left/Right
       currentEuler.current.y -= ax.steer * ROT_ACCEL * dt;
-      // Pitch with Q/E
-      currentEuler.current.x = Math.max(
-        -1.2,
-        Math.min(1.2, currentEuler.current.x + ax.pitch * ROT_ACCEL * dt),
-      );
+
+      // Pitch with R/F with gentle auto-trim stabilization
+      if (Math.abs(ax.pitch) > 0.05) {
+        currentEuler.current.x = Math.max(
+          -0.85,
+          Math.min(0.85, currentEuler.current.x + ax.pitch * ROT_ACCEL * dt),
+        );
+      } else {
+        // Softly re-center pitch to orbital plane
+        currentEuler.current.x += (0 - currentEuler.current.x) * (1 - Math.exp(-2.2 * dt));
+      }
+
       // Natural banking roll when turning
-      const targetRoll = -ax.steer * 0.35;
-      currentEuler.current.z += (targetRoll - currentEuler.current.z) * (1 - Math.exp(-6 * dt));
+      const targetRoll = -ax.steer * 0.38;
+      currentEuler.current.z += (targetRoll - currentEuler.current.z) * (1 - Math.exp(-6.5 * dt));
 
       sim.quat.setFromEuler(currentEuler.current);
 
@@ -176,6 +186,7 @@ export function SimLoop() {
       // Forward vector in facing direction
       const fwd = T1.set(0, 0, 1).applyQuaternion(sim.quat);
       const targetVel = T2.copy(fwd).multiplyScalar(hasFuel ? targetSpeed : 0);
+      sim.thrustWorld.copy(fwd).multiplyScalar(ax.thrust);
 
       // Smoothly align craft velocity to heading (arcade responsiveness)
       if (Math.abs(ax.thrust) > 0.05 || sim.boosting) {
@@ -228,25 +239,53 @@ export function SimLoop() {
       projectToScreen(cam, deb.pos, deb.screenPt);
     });
 
-    // --- SMOOTH CHASE CAMERA ---
+    // --- SMOOTH CHASE CAMERA WITH DYNAMIC INERTIA & MOTION BLUR FOV ---
+    const speed = sim.vel.length();
+
     if (sim.view === 0) {
       // Optical Bow Sensor Cam
       const fwd = T1.set(0, 0, 1).applyQuaternion(sim.quat);
       cam.position.copy(sim.pos).add(fwd.clone().multiplyScalar(1.5));
       cam.lookAt(T2.copy(sim.pos).add(fwd.clone().multiplyScalar(100)));
-      cam.fov = sim.boosting ? 75 : 62;
+      const targetFov = sim.boosting ? 76 : 62 + Math.min(8, speed * 0.2);
+      cam.fov += (targetFov - cam.fov) * (1 - Math.exp(-6 * dt));
       cam.updateProjectionMatrix();
     } else if (sim.view === 1) {
-      // Third-Person Chase Cam (Behind & slightly above)
-      const camOffset = T1.set(0, 3.2, -11).applyQuaternion(sim.quat);
+      // Third-Person Chase Cam (Dynamic spring follow with velocity lag)
+      const chaseDist = sim.boosting ? -13.5 : -10.8 - Math.min(2.5, speed * 0.08);
+      const chaseHeight = 3.1 + (sim.boosting ? 0.35 : 0);
+      const camOffset = T1.set(0, chaseHeight, chaseDist).applyQuaternion(sim.quat);
       const targetCamPos = T2.copy(sim.pos).add(camOffset);
-      chasePos.current.lerp(targetCamPos, 1 - Math.exp(-8 * dt));
 
-      cam.position.copy(chasePos.current);
-      // Look slightly ahead of Reviver
-      const lookAhead = T3.set(0, 0.4, 18).applyQuaternion(sim.quat);
+      // Camera Spring Lag
+      chasePos.current.lerp(targetCamPos, 1 - Math.exp(-7.5 * dt));
+
+      // Atmospheric turbulence & boost micro-rumble
+      let shakeY = 0;
+      let shakeX = 0;
+      if (sim.boosting) {
+        shakeY = (Math.random() - 0.5) * 0.06;
+        shakeX = (Math.random() - 0.5) * 0.06;
+      } else if (sim.inReentryCorridor) {
+        const prox = Math.max(0, 1.0 - sim.distToCorridor / REENTRY_CORRIDOR_RADIUS);
+        shakeY = Math.sin(sim.time * 30) * 0.1 * prox;
+        shakeX = Math.cos(sim.time * 24) * 0.08 * prox;
+      }
+
+      cam.position.set(
+        chasePos.current.x + shakeX,
+        chasePos.current.y + shakeY,
+        chasePos.current.z,
+      );
+
+      // Look slightly ahead of Reviver with lead angle
+      const lookAheadDist = 18 + Math.min(10, speed * 0.4);
+      const lookAhead = T3.set(0, 0.4, lookAheadDist).applyQuaternion(sim.quat);
       cam.lookAt(T1.copy(sim.pos).add(lookAhead));
-      cam.fov = sim.boosting ? 70 : 58;
+
+      // Dynamic Speed FOV
+      const targetFov = sim.boosting ? 68 : 58 + Math.min(7, speed * 0.22);
+      cam.fov += (targetFov - cam.fov) * (1 - Math.exp(-5.5 * dt));
       cam.updateProjectionMatrix();
     } else {
       // Mothercraft Overview Cam

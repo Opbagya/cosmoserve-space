@@ -22,68 +22,67 @@ export function useSpaceMaterials() {
     const silver = getFoil("silver");
     const darkFoil = getFoil("dark");
     const solarDeep = getSolar("deep");
-    const solarCyan = getSolar("cyan");
 
     return {
       gold: new THREE.MeshPhysicalMaterial({
         map: gold.map,
         bumpMap: gold.bump,
-        bumpScale: 1.2,
-        metalness: 0.92,
-        roughness: 0.18,
+        bumpScale: 0.55,
+        metalness: 0.86,
+        roughness: 0.28,
         color: "#ffd982",
-        clearcoat: 0.35,
-        clearcoatRoughness: 0.15,
+        clearcoat: 0.22,
+        clearcoatRoughness: 0.25,
       }),
       silver: new THREE.MeshPhysicalMaterial({
         map: silver.map,
         bumpMap: silver.bump,
-        bumpScale: 1.1,
-        metalness: 0.95,
-        roughness: 0.16,
+        bumpScale: 0.45,
+        metalness: 0.88,
+        roughness: 0.26,
         color: "#f0f4f8",
-        clearcoat: 0.25,
+        clearcoat: 0.2,
       }),
       darkFoil: new THREE.MeshStandardMaterial({
         map: darkFoil.map,
         bumpMap: darkFoil.bump,
-        bumpScale: 0.8,
-        metalness: 0.7,
-        roughness: 0.45,
+        bumpScale: 0.6,
+        metalness: 0.65,
+        roughness: 0.48,
         color: "#22252e",
       }),
       whiteChassis: new THREE.MeshStandardMaterial({
         color: "#e8edf2",
-        metalness: 0.2,
-        roughness: 0.4,
+        metalness: 0.15,
+        roughness: 0.38,
       }),
       titanium: new THREE.MeshStandardMaterial({
         color: "#b0b8c4",
-        metalness: 0.88,
-        roughness: 0.25,
+        metalness: 0.78,
+        roughness: 0.32,
       }),
       darkStructural: new THREE.MeshStandardMaterial({
         color: "#181b22",
-        metalness: 0.65,
-        roughness: 0.4,
+        metalness: 0.6,
+        roughness: 0.45,
       }),
       niobiumNozzle: new THREE.MeshStandardMaterial({
         color: "#4e4740",
-        metalness: 0.85,
-        roughness: 0.3,
+        metalness: 0.8,
+        roughness: 0.35,
       }),
       solarPanels: new THREE.MeshPhysicalMaterial({
         map: solarDeep,
-        metalness: 0.6,
-        roughness: 0.2,
-        clearcoat: 0.9,
-        clearcoatRoughness: 0.05,
+        metalness: 0.5,
+        roughness: 0.25,
+        clearcoat: 0.45,
+        clearcoatRoughness: 0.2,
       }),
       solarCyanPanels: new THREE.MeshPhysicalMaterial({
         map: solarDeep,
-        metalness: 0.65,
-        roughness: 0.22,
-        clearcoat: 0.9,
+        metalness: 0.55,
+        roughness: 0.26,
+        clearcoat: 0.45,
       }),
       backsheet: new THREE.MeshStandardMaterial({
         color: "#2c3038",
@@ -111,6 +110,9 @@ export function Reviver() {
   const rightWing = useRef<THREE.Group>(null);
   const captureArms = useRef<(THREE.Group | null)[]>([]);
   const thrusterGlow = useRef<THREE.Mesh>(null);
+  const thrusterCore = useRef<THREE.Mesh>(null);
+  const rcsPort = useRef<THREE.Mesh>(null);
+  const rcsStarboard = useRef<THREE.Mesh>(null);
   const beaconMat = useMemo(() => hdr(2.2, 2.2, 2.5), []);
 
   const _q = useMemo(() => new THREE.Quaternion(), []);
@@ -134,20 +136,45 @@ export function Reviver() {
     // Animate Soft Robotic Capture Arms
     // In free flight: open slightly. When grappled: close around target.
     const grip = sim.capturedDebrisId ? 1.0 : sim.canCapture ? 0.45 : 0.0;
-    captureArms.current.forEach((arm, i) => {
+    captureArms.current.forEach((arm) => {
       if (arm) {
         const targetRot = 0.4 - grip * 0.75;
-        arm.rotation.x += (targetRot - arm.rotation.x) * (1 - Math.exp(-4.5 * delta));
+        arm.rotation.x += (targetRot - arm.rotation.x) * (1 - Math.exp(-5.5 * delta));
       }
     });
 
-    // Main Engine / RCS Glow
+    // Main Engine Dual Plume (Cyan Envelope + White Core)
+    const isThrusting = (sim.thrustAmount > 0.05 || sim.boosting) && sim.fuel > 0;
     if (thrusterGlow.current) {
-      const isThrusting = sim.thrustWorld.lengthSq() > 0.05 || sim.boosting;
       thrusterGlow.current.visible = isThrusting;
       if (isThrusting) {
-        const scale = (sim.boosting ? 1.8 : 0.9) + Math.sin(clock.elapsedTime * 40) * 0.2;
-        thrusterGlow.current.scale.set(scale, scale, scale * 1.5);
+        const scale = (sim.boosting ? 1.9 : 1.0) + Math.sin(clock.elapsedTime * 45) * 0.15;
+        thrusterGlow.current.scale.set(scale, scale, scale * (sim.boosting ? 2.2 : 1.4));
+      }
+    }
+    if (thrusterCore.current) {
+      thrusterCore.current.visible = isThrusting;
+      if (isThrusting) {
+        const coreScale = (sim.boosting ? 1.5 : 0.75) + Math.sin(clock.elapsedTime * 60) * 0.1;
+        thrusterCore.current.scale.set(coreScale, coreScale, coreScale * (sim.boosting ? 1.8 : 1.1));
+      }
+    }
+
+    // RCS Attitude Thruster Puffs (Cold-Gas steering reaction control)
+    if (rcsPort.current) {
+      const active = sim.steerAmount > 0.1;
+      rcsPort.current.visible = active;
+      if (active) {
+        const s = 0.6 + Math.sin(clock.elapsedTime * 50) * 0.2;
+        rcsPort.current.scale.set(s, s, s);
+      }
+    }
+    if (rcsStarboard.current) {
+      const active = sim.steerAmount < -0.1;
+      rcsStarboard.current.visible = active;
+      if (active) {
+        const s = 0.6 + Math.sin(clock.elapsedTime * 50) * 0.2;
+        rcsStarboard.current.scale.set(s, s, s);
       }
     }
 
@@ -245,19 +272,71 @@ export function Reviver() {
         <cylinderGeometry args={[0.18, 0.42, 0.5, 16]} />
       </mesh>
 
-      {/* Dynamic Thruster Exhaust Flame */}
+      {/* Dynamic Thruster Exhaust Flame - Outer Plume */}
       <mesh
         ref={thrusterGlow}
-        position={[0, 0, -1.9]}
-        rotation={[Math.PI / 2, 0, 0]}
+        position={[0, 0, -2.1]}
+        rotation={[-Math.PI / 2, 0, 0]}
         visible={false}
       >
-        <coneGeometry args={[0.32, 1.3, 16]} />
+        <coneGeometry args={[0.34, 1.6, 16]} />
         <meshBasicMaterial
-          color={new THREE.Color(0.5, 0.75, 1.0)}
+          color={new THREE.Color(0.2, 0.65, 1.0)}
           transparent
           opacity={0.65}
           blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Dynamic Thruster Exhaust Flame - Inner White/Cyan Hot Core */}
+      <mesh
+        ref={thrusterCore}
+        position={[0, 0, -1.8]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        visible={false}
+      >
+        <coneGeometry args={[0.18, 1.0, 16]} />
+        <meshBasicMaterial
+          color={new THREE.Color(0.85, 0.95, 1.0)}
+          transparent
+          opacity={0.9}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Port Attitude RCS Quad Puffs */}
+      <mesh
+        ref={rcsPort}
+        position={[-1.25, 0, 0.6]}
+        rotation={[0, 0, Math.PI / 2]}
+        visible={false}
+      >
+        <coneGeometry args={[0.12, 0.45, 8]} />
+        <meshBasicMaterial
+          color={new THREE.Color(0.7, 0.88, 1.0)}
+          transparent
+          opacity={0.6}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Starboard Attitude RCS Quad Puffs */}
+      <mesh
+        ref={rcsStarboard}
+        position={[1.25, 0, 0.6]}
+        rotation={[0, 0, -Math.PI / 2]}
+        visible={false}
+      >
+        <coneGeometry args={[0.12, 0.45, 8]} />
+        <meshBasicMaterial
+          color={new THREE.Color(0.7, 0.88, 1.0)}
+          transparent
+          opacity={0.6}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
         />
       </mesh>
 

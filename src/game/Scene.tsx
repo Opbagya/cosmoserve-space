@@ -1,5 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { Stars } from "@react-three/drei";
+import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { SUN_DIR } from "./sim";
 import { Earth, ReentryCorridorMarker } from "./Earth";
@@ -15,10 +16,13 @@ export function SpaceScene() {
         gl={{
           antialias: true,
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.15,
+          toneMappingExposure: 1.25,
           powerPreference: "high-performance",
         }}
         shadows
+        onCreated={({ gl }) => {
+          gl.shadowMap.type = THREE.PCFSoftShadowMap;
+        }}
       >
         {/* Deep Cosmic Starfield */}
         <Stars
@@ -26,49 +30,74 @@ export function SpaceScene() {
           depth={80}
           count={7000}
           factor={4}
-          saturation={0.4}
+          saturation={0.35}
           fade
-          speed={0.5}
+          speed={0.4}
         />
 
-        {/* Directional Sun Light (High-Contrast Hard Space Illumination) */}
+        {/* Primary Sun Directional Light */}
         <directionalLight
-          position={[SUN_DIR.x * 200, SUN_DIR.y * 200, SUN_DIR.z * 200]}
-          intensity={3.4}
+          position={[SUN_DIR.x * 220, SUN_DIR.y * 220, SUN_DIR.z * 220]}
+          intensity={3.8}
           castShadow
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
           shadow-camera-near={10}
           shadow-camera-far={600}
-          shadow-camera-left={-40}
-          shadow-camera-right={40}
-          shadow-camera-top={40}
-          shadow-camera-bottom={-40}
+          shadow-camera-left={-50}
+          shadow-camera-right={50}
+          shadow-camera-top={50}
+          shadow-camera-bottom={-50}
+          shadow-bias={-0.0001}
         />
 
-        {/* Subtle Cosmic Ambient Rim Fill */}
-        <ambientLight intensity={0.16} color="#455577" />
+        {/* Secondary Soft Fill Light (Atmospheric Sun Scatter Fill) */}
+        <directionalLight
+          position={[-SUN_DIR.x * 180, -SUN_DIR.y * 90, -SUN_DIR.z * 180]}
+          intensity={1.15}
+          color="#90b4d6"
+        />
 
-        {/* Earth & Atmospheric Scatter Shell */}
+        {/* Low Earth Orbit Albedo Bounce (Sky: Starlight, Ground: Earth Cyan-Blue Albedo) */}
+        <hemisphereLight
+          args={["#cce3ff", "#20364d", 0.85]}
+        />
+
+        {/* Balanced Cosmic Ambient Fill - Brightens All Vehicle & Station Sides */}
+        <ambientLight intensity={0.45} color="#94a8c7" />
+
+        {/* Photorealistic Earth with Custom Atmospheric Shader */}
         <Earth />
 
-        {/* Holographic Atmospheric Reentry Disposal Gate */}
+        {/* Atmospheric Reentry Disposal Gate Interface */}
         <ReentryCorridorMarker />
 
-        {/* Cosmoserve Mothercraft Base */}
+        {/* Cosmoserve Mothercraft Base Hub */}
         <Mothercraft />
 
-        {/* Reviver Servicer Module */}
+        {/* Reviver Active Debris Removal Servicer */}
         <Reviver />
 
-        {/* Active Space Debris Targets */}
+        {/* Space Debris Targets (Upper Stages, Defunct Sats, Adapters) */}
         <DebrisField />
 
-        {/* Thruster Plumes, Reentry Plasma, and Particles */}
+        {/* Motion Streaks, RCS Plumes, and Atmospheric Plasma Effects */}
         <FlightEffects />
 
-        {/* High-Precision Physics & Camera Loop */}
+        {/* High-Precision Physics, Camera Inertia & Controls Loop */}
         <SimLoop />
+
+        {/* Soft Aerospace Post-Processing: Gentle Bloom & Filmic Vignette */}
+        <EffectComposer multisampling={4} autoClear={false}>
+          <Bloom
+            luminanceThreshold={0.82}
+            luminanceSmoothing={0.3}
+            intensity={0.6}
+            radius={0.5}
+            mipmapBlur
+          />
+          <Vignette eskil={false} offset={0.16} darkness={0.42} />
+        </EffectComposer>
       </Canvas>
     </div>
   );

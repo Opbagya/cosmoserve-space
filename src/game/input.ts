@@ -3,7 +3,7 @@ export interface Axes {
   steer: number;  // -1 left, +1 right (yaw & bank)
   pitch: number;  // -1 down, +1 up
   boost: boolean; // turbo boost
-  action: boolean; // space / action
+  action: boolean; // space / launch / deorbit
 }
 
 const keys = new Set<string>();
@@ -15,17 +15,37 @@ export const touch = {
   boost: false,
 };
 
-export function attachKeyboard(onSpecial?: (code: string) => void) {
+export type KeyHandler = (code: string, event: KeyboardEvent) => void;
+
+export function attachKeyboard(onSpecial?: KeyHandler) {
   const down = (e: KeyboardEvent) => {
-    if (e.code === "F12" || (e.metaKey && e.code === "KeyR")) return;
+    // Allow developer tools and browser reload
+    if (e.code === "F12" || (e.metaKey && e.code === "KeyR") || (e.ctrlKey && e.code === "KeyR")) {
+      return;
+    }
+
+    // Prevent Alt key from unfocusing browser window / opening browser menubar on Windows
+    if (e.code === "AltLeft" || e.code === "AltRight" || e.key === "Alt") {
+      e.preventDefault();
+    }
+
+    // Prevent Space / Arrow keys from scrolling the webpage
+    if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
+      e.preventDefault();
+    }
+
     keys.add(e.code);
-    if (onSpecial) onSpecial(e.code);
+
+    if (onSpecial) {
+      onSpecial(e.code, e);
+    }
   };
+
   const up = (e: KeyboardEvent) => {
     keys.delete(e.code);
   };
 
-  window.addEventListener("keydown", down);
+  window.addEventListener("keydown", down, { passive: false });
   window.addEventListener("keyup", up);
 
   return () => {
@@ -42,24 +62,23 @@ export function readAxes(): Axes {
   let boost = false;
   let action = false;
 
-  // Simple intuitive controls:
-  // Forward / Reverse: W / S or Arrow Up / Down
+  // 1. Forward / Reverse: W / S or Arrow Up / Down
   if (keys.has("KeyW") || keys.has("ArrowUp")) thrust += 1;
   if (keys.has("KeyS") || keys.has("ArrowDown")) thrust -= 1;
 
-  // Turn Left / Right: A / D or Arrow Left / Right
+  // 2. Turn Left / Right: A / D or Arrow Left / Right (Yaw & banking roll)
   if (keys.has("KeyA") || keys.has("ArrowLeft")) steer -= 1;
   if (keys.has("KeyD") || keys.has("ArrowRight")) steer += 1;
 
-  // Pitch Nose Up / Down: Q / E or R / F
-  if (keys.has("KeyQ") || keys.has("KeyR")) pitch -= 1; // pitch down
-  if (keys.has("KeyE") || keys.has("KeyF")) pitch += 1; // pitch up
+  // 3. Optional Pitch: R (nose down) / F (nose up)
+  if (keys.has("KeyR")) pitch -= 1;
+  if (keys.has("KeyF")) pitch += 1;
 
-  // Boost: Shift or Space
+  // 4. Boost: Shift or Space
   if (keys.has("ShiftLeft") || keys.has("ShiftRight")) boost = true;
   if (keys.has("Space") || keys.has("Enter")) action = true;
 
-  // Touch overrides
+  // 5. Touch / Virtual Stick overrides (Mobile)
   if (Math.abs(touch.thrust) > 0.05) thrust = touch.thrust;
   if (Math.abs(touch.steer) > 0.05) steer = touch.steer;
   if (Math.abs(touch.pitch) > 0.05) pitch = touch.pitch;

@@ -61,20 +61,37 @@ export function Game() {
   useEffect(() => {
     setTouch(window.matchMedia("(pointer: coarse)").matches);
 
-    return attachKeyboard((code) => {
+    return attachKeyboard((code, event) => {
       if (code === "KeyP" || code === "Escape") togglePause();
       if (sim.screen !== "playing") return;
 
       if (code === "KeyV") cycleView();
-      if (code === "KeyE") {
+
+      // Dedicated Soft-Robotic Capture Key:
+      // Command (Mac: MetaLeft/MetaRight/metaKey) or Alt (Windows: AltLeft/AltRight/altKey) or C
+      const isCaptureKey =
+        code === "MetaLeft" ||
+        code === "MetaRight" ||
+        code === "AltLeft" ||
+        code === "AltRight" ||
+        code === "KeyC" ||
+        event.metaKey ||
+        event.altKey;
+
+      if (isCaptureKey) {
         if (sim.canCapture) {
           triggerCapture();
           audio.grappleLock();
         } else if (sim.capturedDebrisId) {
           releaseCapturedDebris(sim.inReentryCorridor);
-          if (sim.inReentryCorridor) audio.disintegrationExplosion();
+          if (sim.inReentryCorridor) {
+            audio.disintegrationExplosion();
+          }
         }
+        return;
       }
+
+      // Space / Enter: Undock when at station, or De-orbit Burn when in corridor
       if (code === "Space" || code === "Enter") {
         if (sim.docked) {
           undock();
@@ -83,11 +100,10 @@ export function Game() {
         } else if (sim.deorbitReady) {
           releaseCapturedDebris(true);
           audio.disintegrationExplosion();
-        } else if (sim.canCapture) {
-          triggerCapture();
-          audio.grappleLock();
         }
       }
+
+      // Forward thrusters (W / Up) while docked launches craft
       if (sim.docked && (code === "KeyW" || code === "ArrowUp")) {
         undock();
         audio.thud(60, 0.35, 0.6);

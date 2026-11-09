@@ -139,6 +139,8 @@ export const sim = {
   angVel: new THREE.Vector3(),
   thrustWorld: new THREE.Vector3(),
   thrustRot: new THREE.Vector3(),
+  thrustAmount: 0,
+  steerAmount: 0,
 
   // Systems
   fuel: FUEL_CAPACITY,
@@ -201,6 +203,8 @@ export function resetSim() {
   sim.angVel.set(0, 0, 0);
   sim.thrustWorld.set(0, 0, 0);
   sim.thrustRot.set(0, 0, 0);
+  sim.thrustAmount = 0;
+  sim.steerAmount = 0;
 
   sim.fuel = FUEL_CAPACITY;
   sim.hull = 100;

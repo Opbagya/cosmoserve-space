@@ -78,7 +78,7 @@ export function Briefing({ onStart, onOpenAbout }: BriefingProps) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div className="flex flex-col">
               <span className="font-mono-tech text-zinc-200 font-semibold">W or ↑</span>
-              <span className="text-zinc-500 text-[11px]">Fly Forward (Thrust)</span>
+              <span className="text-zinc-500 text-[11px]">Forward Thrusters</span>
             </div>
             <div className="flex flex-col">
               <span className="font-mono-tech text-zinc-200 font-semibold">S or ↓</span>
@@ -89,20 +89,20 @@ export function Briefing({ onStart, onOpenAbout }: BriefingProps) {
               <span className="text-zinc-500 text-[11px]">Steer Left / Right</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-mono-tech text-zinc-200 font-semibold">Q / E</span>
-              <span className="text-zinc-500 text-[11px]">Pitch Down / Up</span>
+              <span className="font-mono-tech text-zinc-100 font-bold text-emerald-400">⌘ Cmd / Alt / C</span>
+              <span className="text-zinc-400 text-[11px]">Soft Robotic Capture</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-mono-tech text-zinc-200 font-semibold">Space</span>
-              <span className="text-zinc-500 text-[11px]">Launch / Boost / De-orbit</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-mono-tech text-zinc-200 font-semibold">E or Click</span>
-              <span className="text-zinc-500 text-[11px]">Soft Robotic Capture</span>
+              <span className="font-mono-tech text-zinc-200 font-semibold">Space / Enter</span>
+              <span className="text-zinc-500 text-[11px]">Launch / De-orbit Burn</span>
             </div>
             <div className="flex flex-col">
               <span className="font-mono-tech text-zinc-200 font-semibold">Shift</span>
-              <span className="text-zinc-500 text-[11px]">Turbo Boost</span>
+              <span className="text-zinc-500 text-[11px]">Turbo Boost Burn</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="font-mono-tech text-zinc-200 font-semibold">R / F</span>
+              <span className="text-zinc-500 text-[11px]">Pitch Trim Down / Up</span>
             </div>
             <div className="flex flex-col">
               <span className="font-mono-tech text-zinc-200 font-semibold">V / Esc</span>

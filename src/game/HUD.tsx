@@ -241,9 +241,12 @@ export function HUD() {
             </div>
             <button
               onClick={triggerCapture}
-              className="rounded bg-white hover:bg-zinc-200 text-black font-bold px-5 py-2 text-xs tracking-wider transition active:scale-95 shadow-md"
+              className="flex items-center gap-2 rounded bg-white hover:bg-zinc-200 text-black font-bold px-5 py-2 text-xs tracking-wider transition active:scale-95 shadow-md"
             >
-              CAPTURE [E / CLICK]
+              <span>CAPTURE</span>
+              <span className="rounded bg-black/15 px-1.5 py-0.5 text-[10px] font-mono-tech text-zinc-800">
+                ⌘ CMD / ALT / C
+              </span>
             </button>
           </div>
         )}
@@ -326,7 +329,7 @@ export function HUD() {
 
           <div className="flex items-center justify-between text-[9px] font-mono-tech text-zinc-500">
             <span>0%</span>
-            <span>W: FORWARD · S: BRAKE · A/D: STEER</span>
+            <span>W/S: THROTTLE · A/D: STEER · ⌘ CMD / ALT: CAPTURE · SPACE: BOOST</span>
             <span>100% (RAPID RECHARGE)</span>
           </div>
         </div>
@@ -345,19 +348,20 @@ export function HUD() {
               onClick={() => releaseCapturedDebris(sim.inReentryCorridor)}
               className="rounded bg-zinc-200 hover:bg-white text-zinc-950 font-bold px-4 py-2 text-xs tracking-wider transition active:scale-95"
             >
-              {sim.inReentryCorridor ? "DE-ORBIT" : "RELEASE"}
+              {sim.inReentryCorridor ? "DE-ORBIT [SPACE]" : "RELEASE [CMD/ALT]"}
             </button>
           ) : (
             <button
               onClick={triggerCapture}
               disabled={!sim.canCapture}
-              className={`rounded px-4 py-2 text-xs font-bold tracking-wider transition active:scale-95 ${
+              className={`flex items-center gap-1.5 rounded px-4 py-2 text-xs font-bold tracking-wider transition active:scale-95 ${
                 sim.canCapture
-                  ? "bg-white text-black hover:bg-zinc-200"
+                  ? "bg-white text-black hover:bg-zinc-200 shadow-md"
                   : "bg-zinc-900 border border-white/10 text-zinc-600 cursor-not-allowed"
               }`}
             >
-              CAPTURE [E]
+              <span>CAPTURE</span>
+              <span className="text-[10px] opacity-75">[CMD/ALT]</span>
             </button>
           )}
         </div>
@@ -433,16 +437,24 @@ export function TouchControls() {
         {sim.docked ? (
           <button
             onClick={undock}
-            className="h-12 w-14 rounded-md bg-white text-black text-xs font-mono-tech font-bold active:scale-95 transition"
+            className="h-12 w-14 rounded-md bg-white text-black text-xs font-mono-tech font-bold active:scale-95 transition shadow-lg"
           >
             LAUNCH
           </button>
         ) : (
           <button
             onClick={sim.inReentryCorridor ? () => releaseCapturedDebris(true) : triggerCapture}
-            className="h-12 w-14 rounded-md bg-white text-black text-xs font-mono-tech font-bold active:scale-95 transition"
+            className={`h-12 w-14 rounded-md text-xs font-mono-tech font-bold active:scale-95 transition shadow-lg ${
+              sim.inReentryCorridor
+                ? "bg-amber-400 text-black"
+                : sim.capturedDebrisId
+                ? "bg-zinc-200 text-black"
+                : sim.canCapture
+                ? "bg-white text-black animate-pulse"
+                : "bg-zinc-800 text-zinc-400 border border-white/20"
+            }`}
           >
-            {sim.inReentryCorridor ? "DEORBIT" : "ACTION"}
+            {sim.inReentryCorridor ? "DEORBIT" : sim.capturedDebrisId ? "RELEASE" : "GRAPPLE"}
           </button>
         )}
       </div>
