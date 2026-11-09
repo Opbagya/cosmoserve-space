@@ -318,16 +318,24 @@ export function LandingPage({ onStart }: LandingPageProps) {
 
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-2 border border-white/[0.05]">
-                <span className="text-zinc-400">Regular Move (Fwd/Rev/Turn)</span>
-                <span className="font-mono-tech text-white font-bold">↑ / ↓ / ← / →</span>
+                <span className="text-zinc-400">Forward Thrust</span>
+                <span className="font-mono-tech text-white font-bold">↑ or R</span>
+              </div>
+              <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-2 border border-white/[0.05]">
+                <span className="text-zinc-400">Reverse / Brake</span>
+                <span className="font-mono-tech text-white font-bold">↓ or Ctrl</span>
               </div>
               <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-2 border border-white/[0.05]">
                 <span className="text-zinc-400">Pitch (Nose Down / Up)</span>
                 <span className="font-mono-tech text-white font-bold">W / S</span>
               </div>
               <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-2 border border-white/[0.05]">
-                <span className="text-zinc-400">Yaw & Bank Roll</span>
-                <span className="font-mono-tech text-white font-bold">A / D</span>
+                <span className="text-zinc-400">Yaw (Turn Left / Right)</span>
+                <span className="font-mono-tech text-white font-bold">A / D (or ← / →)</span>
+              </div>
+              <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-2 border border-white/[0.05]">
+                <span className="text-zinc-400">Roll (CCW / CW)</span>
+                <span className="font-mono-tech text-white font-bold">Q / E</span>
               </div>
               <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-2 border border-white/[0.05]">
                 <span className="text-zinc-400">Nitro Turbo Boost</span>
@@ -335,7 +343,7 @@ export function LandingPage({ onStart }: LandingPageProps) {
               </div>
               <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-2 border border-white/[0.05]">
                 <span className="text-zinc-400">Robotic Pickup (Capture)</span>
-                <span className="font-mono-tech text-emerald-400 font-bold">Alt / Command</span>
+                <span className="font-mono-tech text-emerald-400 font-bold">F</span>
               </div>
               <div className="flex items-center justify-between rounded bg-white/[0.03] px-3 py-2 border border-white/[0.05]">
                 <span className="text-zinc-400">Atmospheric De-Orbit</span>

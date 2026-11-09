@@ -343,9 +343,9 @@ export function HUD() {
                 e.preventDefault();
                 releaseCapturedDebris(sim.inReentryCorridor);
               }}
-              className="rounded bg-amber-500 hover:bg-amber-400 text-black font-bold px-3.5 py-1.5 text-xs tracking-wider transition active:scale-95 shadow-md"
+              className="rounded bg-amber-500 hover:bg-amber-400 text-black font-bold px-3.5 py-1.5 text-xs tracking-wider transition active:scale-95 shadow-md font-mono-tech"
             >
-              {sim.inReentryCorridor ? "DE-ORBIT" : "RELEASE"}
+              {sim.inReentryCorridor ? "DE-ORBIT [SPACE]" : "RELEASE [F]"}
             </button>
           ) : (
             <button
@@ -354,13 +354,13 @@ export function HUD() {
                 triggerCapture();
               }}
               disabled={!sim.canCapture}
-              className={`rounded px-3.5 py-1.5 text-xs font-bold tracking-wider transition active:scale-95 ${
+              className={`rounded px-3.5 py-1.5 text-xs font-bold tracking-wider transition active:scale-95 font-mono-tech ${
                 sim.canCapture
                   ? "bg-white text-black hover:bg-zinc-200 shadow-md"
                   : "bg-zinc-900 border border-white/10 text-zinc-600 cursor-not-allowed"
               }`}
             >
-              PICKUP
+              PICKUP [F]
             </button>
           )}
         </div>

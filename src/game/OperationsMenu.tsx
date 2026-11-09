@@ -278,7 +278,7 @@ export function OperationsMenu({ onResume, onRestart, onOpenAbout }: OperationsM
                 </div>
                 <p className="text-zinc-400 leading-relaxed text-[11px]">
                   1. Navigate towards targeted defunct satellites in Low Earth Orbit.<br />
-                  2. Approach within 35 meters and press <strong className="text-emerald-400">Alt / Command</strong> to engage soft-robotic capture paddles.<br />
+                  2. Approach within 35 meters and press <strong className="text-emerald-400">F</strong> to engage soft-robotic capture paddles.<br />
                   3. Ferry debris to the sub-120km entry corridor and press <strong className="text-amber-400">Space</strong> to de-orbit.<br />
                   4. Return to the Mothercraft depot whenever fuel drops low for rapid refill.
                 </p>
@@ -438,24 +438,36 @@ export function OperationsMenu({ onResume, onRestart, onOpenAbout }: OperationsM
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                   <div className="flex items-center justify-between rounded bg-white/[0.02] px-3 py-1.5 border border-white/[0.04]">
-                    <span className="text-zinc-400">Regular Move (Fwd/Rev/Turn)</span>
-                    <span className="font-mono-tech text-white font-bold">↑ / ↓ / ← / →</span>
+                    <span className="text-zinc-400">Forward Thrust</span>
+                    <span className="font-mono-tech text-white font-bold">↑ or R</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded bg-white/[0.02] px-3 py-1.5 border border-white/[0.04]">
+                    <span className="text-zinc-400">Reverse / Brake</span>
+                    <span className="font-mono-tech text-white font-bold">↓ or Ctrl</span>
                   </div>
                   <div className="flex items-center justify-between rounded bg-white/[0.02] px-3 py-1.5 border border-white/[0.04]">
                     <span className="text-zinc-400">Pitch (Nose Down / Up)</span>
                     <span className="font-mono-tech text-white font-bold">W / S</span>
                   </div>
                   <div className="flex items-center justify-between rounded bg-white/[0.02] px-3 py-1.5 border border-white/[0.04]">
-                    <span className="text-zinc-400">Yaw & Bank Roll</span>
-                    <span className="font-mono-tech text-white font-bold">A / D</span>
+                    <span className="text-zinc-400">Yaw (Turn Left / Right)</span>
+                    <span className="font-mono-tech text-white font-bold">A / D (or ← / →)</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded bg-white/[0.02] px-3 py-1.5 border border-white/[0.04]">
+                    <span className="text-zinc-400">Roll (Bank Left / Right)</span>
+                    <span className="font-mono-tech text-white font-bold">Q / E</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded bg-white/[0.02] px-3 py-1.5 border border-white/[0.04]">
+                    <span className="text-zinc-400">Heave (Vertical Up / Down)</span>
+                    <span className="font-mono-tech text-white font-bold">Space / C</span>
                   </div>
                   <div className="flex items-center justify-between rounded bg-white/[0.02] px-3 py-1.5 border border-white/[0.04]">
                     <span className="text-zinc-400">Nitro Turbo Boost</span>
                     <span className="font-mono-tech text-amber-400 font-semibold">Shift (Hold)</span>
                   </div>
                   <div className="flex items-center justify-between rounded bg-white/[0.02] px-3 py-1.5 border border-white/[0.04]">
-                    <span className="text-zinc-400">Robotic Pickup (Capture)</span>
-                    <span className="font-mono-tech text-emerald-400 font-bold">Alt / Command</span>
+                    <span className="text-zinc-400">Robotic Pickup / Release</span>
+                    <span className="font-mono-tech text-emerald-400 font-bold">F</span>
                   </div>
                   <div className="flex items-center justify-between rounded bg-white/[0.02] px-3 py-1.5 border border-white/[0.04]">
                     <span className="text-zinc-400">Atmospheric De-Orbit</span>
@@ -468,6 +480,10 @@ export function OperationsMenu({ onResume, onRestart, onOpenAbout }: OperationsM
                   <div className="flex items-center justify-between rounded bg-white/[0.02] px-3 py-1.5 border border-white/[0.04]">
                     <span className="text-zinc-400">Cycle Camera View</span>
                     <span className="font-mono-tech text-zinc-100 font-semibold">V</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded bg-white/[0.02] px-3 py-1.5 border border-white/[0.04]">
+                    <span className="text-zinc-400">RCS Damper Toggle</span>
+                    <span className="font-mono-tech text-zinc-100 font-semibold">X</span>
                   </div>
                 </div>
               </div>

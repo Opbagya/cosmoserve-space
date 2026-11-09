@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { audio } from "./audio";
-import { attachKeyboard } from "./input";
+import { attachKeyboard, clearKeys } from "./input";
 import { resetSim, sim, undock, triggerCapture, releaseCapturedDebris, returnToMainMenu } from "./sim";
 import { SpaceScene } from "./Scene";
 import { HUD, TouchControls, useTick } from "./HUD";
@@ -52,12 +52,18 @@ export function Game() {
   };
 
   const startMission = () => {
+    clearKeys();
     audio.init();
+    audio.setHiss(0);
+    audio.setRoar(0);
     audio.suspend(false);
     resetSim();
     setRun((r) => r + 1);
     sim.screen = "playing";
     sim.view = 1;
+    sim.thrustAmount = 0;
+    sim.boosting = false;
+    sim.vel.set(0, 0, 0);
     audio.music(musicOn);
     audio.voice("Mission Embrace initialized. Welcome aboard Cosmoserve Reviver.");
   };
@@ -65,7 +71,7 @@ export function Game() {
   useEffect(() => {
     setTouch(window.matchMedia("(pointer: coarse)").matches);
 
-    return attachKeyboard((code, event) => {
+    return attachKeyboard((code) => {
       if (code === "KeyP" || code === "Escape") togglePause();
       if (sim.screen !== "playing") return;
 
@@ -83,20 +89,8 @@ export function Game() {
         return;
       }
 
-      // Soft-Robotic Capture: Alt or Command (Robotic Pickup), also supports Click and E
-      const isCaptureKey =
-        code === "AltLeft" ||
-        code === "AltRight" ||
-        code === "MetaLeft" ||
-        code === "MetaRight" ||
-        event.key === "Alt" ||
-        event.key === "Meta" ||
-        event.metaKey ||
-        event.altKey ||
-        code === "KeyE" ||
-        code === "KeyC";
-
-      if (isCaptureKey) {
+      // Soft-Robotic Capture: F (Dedicated Robotic Pickup Key!)
+      if (code === "KeyF") {
         if (sim.canCapture) {
           triggerCapture();
           audio.grappleLock();
@@ -121,8 +115,8 @@ export function Game() {
         }
       }
 
-      // Forward thrusters (R, W, Up) while docked launches craft
-      if (sim.docked && (code === "KeyR" || code === "KeyW" || code === "ArrowUp")) {
+      // Forward thrusters (R, Up) while docked launches craft
+      if (sim.docked && (code === "KeyR" || code === "ArrowUp")) {
         undock();
         audio.thud(60, 0.35, 0.6);
         audio.voice("Reviver detached. Orbit cleanup sortie active.");

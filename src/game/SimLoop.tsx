@@ -105,9 +105,9 @@ export function SimLoop() {
         sim.recharging = false;
       }
 
-      // Check Launch Inputs (ArrowUp, Space, or Nitro)
+      // Check Launch Inputs (ArrowUp, KeyR, Space, or Enter)
       const ax = readAxes();
-      if (ax.forward > 0.1 || ax.nitro || ax.action) {
+      if (ax.surge > 0.1 || ax.boost || ax.action) {
         undock();
         audio.thud(60, 0.35, 0.6);
         audio.voice("Reviver detached. Orbit cleanup sortie active.");
@@ -155,17 +155,17 @@ export function SimLoop() {
       const pitchSign = sim.invertPitch ? -1 : 1;
       const sens = Math.max(0.4, Math.min(2.5, sim.sensitivity || 1.0));
 
-      // Pitch: W = Nose Down, S = Nose Up
+      // Pitch: W = Nose Down (-1), S = Nose Up (+1)
       currentEuler.current.x = Math.max(
         -1.35,
         Math.min(1.35, currentEuler.current.x + ax.pitch * pitchSign * ROT_ACCEL * sens * dt),
       );
 
-      // Yaw: ArrowLeft / A = Turn Left (-1), ArrowRight / D = Turn Right (+1)
-      currentEuler.current.y += ax.steer * ROT_ACCEL * sens * dt;
+      // Yaw: A / ArrowLeft = Left (-1), D / ArrowRight = Right (+1)
+      currentEuler.current.y += ax.yaw * ROT_ACCEL * sens * dt;
 
-      // Roll: Natural banking into the turn (Left = +Z wing-down, Right = -Z wing-down)
-      const targetRoll = -ax.steer * 0.45;
+      // Roll: Natural banking into turn + manual Q/E
+      const targetRoll = -ax.yaw * 0.4;
       currentEuler.current.z += (targetRoll - currentEuler.current.z) * (1 - Math.exp(-6.5 * dt));
       if (Math.abs(ax.roll) > 0.1) {
         currentEuler.current.z -= ax.roll * ROT_ACCEL * sens * dt;
@@ -178,44 +178,42 @@ export function SimLoop() {
 
       sim.quat.setFromEuler(currentEuler.current);
 
-      // --- REGULAR TRANSLATION (Arrow keys) & NITRO (Shift) ---
-      sim.boosting = ax.nitro && hasFuel;
-      const targetSpeed = sim.boosting
-        ? BOOST_ACCEL
-        : ax.forward > 0
-        ? TRANS_ACCEL
-        : ax.forward < 0
-        ? -TRANS_ACCEL * 0.45
-        : 0;
+      // --- TRANSLATION (Aule Space Direct Physics) ---
+      sim.boosting = ax.boost && hasFuel;
+      const speed = sim.boosting ? BOOST_ACCEL : TRANS_ACCEL;
 
-      // Forward vector in craft's facing direction
+      // Forward (+Z in craft frame), Lateral (+X starboard), Vertical (+Y dorsal)
       const fwd = T1.set(0, 0, 1).applyQuaternion(sim.quat);
-      // Lateral strafe vector (starboard +X)
       const right = T3.set(1, 0, 0).applyQuaternion(sim.quat);
-      const strafeSpeed = ax.steer * (TRANS_ACCEL * 0.35);
+      const up = new THREE.Vector3(0, 1, 0).applyQuaternion(sim.quat);
 
-      const targetVel = T2.copy(fwd)
-        .multiplyScalar(hasFuel ? targetSpeed : 0)
-        .addScaledVector(right, hasFuel ? strafeSpeed : 0);
+      const targetVel = T2.set(0, 0, 0)
+        .addScaledVector(fwd, ax.surge * speed)
+        .addScaledVector(right, ax.sway * (speed * 0.45))
+        .addScaledVector(up, ax.heave * (speed * 0.35));
 
-      sim.thrustWorld.copy(fwd).multiplyScalar(ax.forward);
-      sim.thrustAmount = sim.boosting ? 1.0 : ax.forward;
-      sim.steerAmount = ax.steer;
-      sim.swayAmount = ax.steer;
-      sim.heaveAmount = -ax.pitch;
+      sim.thrustWorld.copy(fwd).multiplyScalar(ax.surge);
+      // Boosters only fire forward when surge > 0 or boosting
+      sim.thrustAmount = sim.boosting ? 1.0 : (ax.surge > 0.05 ? ax.surge : 0);
+      sim.steerAmount = ax.yaw;
+      sim.swayAmount = ax.sway;
+      sim.heaveAmount = ax.heave;
 
       const hasThrustInput =
-        Math.abs(ax.forward) > 0.05 || Math.abs(ax.steer) > 0.05 || sim.boosting;
+        Math.abs(ax.surge) > 0.05 ||
+        Math.abs(ax.sway) > 0.05 ||
+        Math.abs(ax.heave) > 0.05 ||
+        sim.boosting;
 
-      // Snappy arcade acceleration toward heading
+      // Snappy acceleration when thruster inputs are held
       if (hasThrustInput && hasFuel) {
         sim.vel.lerp(targetVel, 1 - Math.exp(-7.5 * dt));
         const rate = sim.boosting ? BOOST_FUEL_RATE : TRANS_FUEL_RATE;
         sim.fuel = Math.max(0, sim.fuel - rate * dt);
         audio.setHiss(sim.boosting ? 1.5 : 0.75);
       } else {
-        // Natural gradual orbital glide when releasing throttle
-        sim.vel.multiplyScalar(1 - Math.min(0.2, 0.35 * dt));
+        // Natural gradual glide when releasing throttle
+        sim.vel.multiplyScalar(1 - Math.min(0.2, 0.4 * dt));
         audio.setHiss(0);
       }
 

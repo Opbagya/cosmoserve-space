@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { clearKeys } from "./input";
 
 export const NOSE_OFFSET = 2.0; // Distance from Reviver center to capture arm tip
 export const MOTHERCRAFT_DOCK_PORT = new THREE.Vector3(0, 0, 24); // Docking collar on Mothercraft
@@ -201,6 +202,7 @@ export const sim = {
 };
 
 export function resetSim() {
+  clearKeys();
   sim.runId++;
   sim.screen = "briefing";
   sim.pos.copy(MOTHERCRAFT_DOCK_PORT);
@@ -269,13 +271,15 @@ export function undock() {
   sim.recharging = false;
   sim.dockCooldown = 5.0; // 5-second cooldown so you CANNOT accidentally re-dock immediately!
   
-  // Position ship cleanly 40 meters forward outside the docking collar
-  sim.pos.copy(MOTHERCRAFT_DOCK_PORT).add(new THREE.Vector3(0, 0, 35));
+  // Position ship cleanly 25 meters forward outside the docking collar
+  sim.pos.copy(MOTHERCRAFT_DOCK_PORT).add(new THREE.Vector3(0, 0, 25));
   sim.quat.identity();
-  // Set forward velocity directly towards Target 1
-  sim.vel.set(0, 0, 18);
+  // Neutral station-keeping: zero initial velocity, zero auto-boost until player thrusts
+  sim.vel.set(0, 0, 0);
+  sim.thrustAmount = 0;
+  sim.boosting = false;
   
-  sim.flashMessage = "LAUNCH CONFIRMED · FLYING FORWARD TOWARDS DEBRIS";
+  sim.flashMessage = "REVIVER DETACHED · USE [↑ / R] FORWARD THRUST";
   sim.flashTimer = 3.5;
 }
 
