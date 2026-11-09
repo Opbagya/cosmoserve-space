@@ -68,32 +68,44 @@ export function FlightEffects() {
     const arr = posAttr.array as Float32Array;
 
     const speed = sim.vel.length();
-    const isFast = speed > 2.0 || sim.boosting;
-    const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(sim.quat);
-    const trailLen = Math.min(18.0, Math.max(0.6, speed * (sim.boosting ? 0.35 : 0.18)));
+    const isMoving = speed > 0.8 || sim.boosting;
 
-    for (let i = 0; i < STREAK_COUNT; i++) {
-      const idx = i * 6;
-      // Move head against vehicle flight direction
-      arr[idx + 0] -= forward.x * (speed + (sim.boosting ? 35 : 10)) * delta;
-      arr[idx + 1] -= forward.y * (speed + (sim.boosting ? 35 : 10)) * delta;
-      arr[idx + 2] -= forward.z * (speed + (sim.boosting ? 35 : 10)) * delta;
+    streakLines.current.visible = isMoving;
 
-      // Wrap around vehicle position
-      const relX = arr[idx + 0] - sim.pos.x;
-      const relY = arr[idx + 1] - sim.pos.y;
-      const relZ = arr[idx + 2] - sim.pos.z;
+    if (isMoving) {
+      const moveFactor = sim.boosting ? 1.5 : 1.0;
+      const moveX = sim.vel.x * moveFactor;
+      const moveY = sim.vel.y * moveFactor;
+      const moveZ = sim.vel.z * moveFactor;
 
-      if (Math.abs(relX) > 80) arr[idx + 0] = sim.pos.x - Math.sign(relX) * 80;
-      if (Math.abs(relY) > 80) arr[idx + 1] = sim.pos.y - Math.sign(relY) * 80;
-      if (Math.abs(relZ) > 80) arr[idx + 2] = sim.pos.z - Math.sign(relZ) * 80;
+      const trailLen = Math.min(10.0, Math.max(0.4, speed * 0.16));
+      const invSpeed = 1 / Math.max(speed, 0.001);
+      const dirX = sim.vel.x * invSpeed;
+      const dirY = sim.vel.y * invSpeed;
+      const dirZ = sim.vel.z * invSpeed;
 
-      // Tail follows head stretched along velocity vector
-      arr[idx + 3] = arr[idx + 0] - forward.x * trailLen;
-      arr[idx + 4] = arr[idx + 1] - forward.y * trailLen;
-      arr[idx + 5] = arr[idx + 2] - forward.z * trailLen;
+      for (let i = 0; i < STREAK_COUNT; i++) {
+        const idx = i * 6;
+        arr[idx + 0] -= moveX * delta;
+        arr[idx + 1] -= moveY * delta;
+        arr[idx + 2] -= moveZ * delta;
+
+        // Wrap around vehicle position
+        const relX = arr[idx + 0] - sim.pos.x;
+        const relY = arr[idx + 1] - sim.pos.y;
+        const relZ = arr[idx + 2] - sim.pos.z;
+
+        if (Math.abs(relX) > 70) arr[idx + 0] = sim.pos.x - Math.sign(relX) * 70;
+        if (Math.abs(relY) > 70) arr[idx + 1] = sim.pos.y - Math.sign(relY) * 70;
+        if (Math.abs(relZ) > 70) arr[idx + 2] = sim.pos.z - Math.sign(relZ) * 70;
+
+        // Tail follows head along true velocity vector
+        arr[idx + 3] = arr[idx + 0] - dirX * trailLen;
+        arr[idx + 4] = arr[idx + 1] - dirY * trailLen;
+        arr[idx + 5] = arr[idx + 2] - dirZ * trailLen;
+      }
+      posAttr.needsUpdate = true;
     }
-    posAttr.needsUpdate = true;
 
     // Dust particles drift slowly
     if (dustPoints.current) {

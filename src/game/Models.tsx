@@ -125,13 +125,19 @@ export function Reviver() {
     root.current.position.copy(sim.pos);
     root.current.quaternion.copy(sim.quat);
 
-    // Orient solar arrays towards the Sun
+    // Orient solar arrays towards the Sun with safe angle unwrapping
     _v.copy(SUN_DIR).applyQuaternion(_q.copy(sim.quat).invert());
     const sunAngle = Math.atan2(_v.z, _v.y);
-    const lerpRate = 1 - Math.exp(-2.0 * delta);
+    const lerpRate = 1 - Math.exp(-3.0 * delta);
 
-    if (leftWing.current) leftWing.current.rotation.x += (sunAngle - leftWing.current.rotation.x) * lerpRate;
-    if (rightWing.current) rightWing.current.rotation.x += (sunAngle - rightWing.current.rotation.x) * lerpRate;
+    if (leftWing.current) {
+      const diff = Math.atan2(Math.sin(sunAngle - leftWing.current.rotation.x), Math.cos(sunAngle - leftWing.current.rotation.x));
+      leftWing.current.rotation.x += diff * lerpRate;
+    }
+    if (rightWing.current) {
+      const diff = Math.atan2(Math.sin(sunAngle - rightWing.current.rotation.x), Math.cos(sunAngle - rightWing.current.rotation.x));
+      rightWing.current.rotation.x += diff * lerpRate;
+    }
 
     // Animate Soft Robotic Capture Arms
     // In free flight: open slightly. When grappled: close around target.
@@ -148,15 +154,15 @@ export function Reviver() {
     if (thrusterGlow.current) {
       thrusterGlow.current.visible = isThrusting;
       if (isThrusting) {
-        const scale = (sim.boosting ? 1.9 : 1.0) + Math.sin(clock.elapsedTime * 45) * 0.15;
-        thrusterGlow.current.scale.set(scale, scale, scale * (sim.boosting ? 2.2 : 1.4));
+        const scale = (sim.boosting ? 1.8 : 1.0) + Math.sin(clock.elapsedTime * 20) * 0.08;
+        thrusterGlow.current.scale.set(scale, scale, scale * (sim.boosting ? 2.0 : 1.3));
       }
     }
     if (thrusterCore.current) {
       thrusterCore.current.visible = isThrusting;
       if (isThrusting) {
-        const coreScale = (sim.boosting ? 1.5 : 0.75) + Math.sin(clock.elapsedTime * 60) * 0.1;
-        thrusterCore.current.scale.set(coreScale, coreScale, coreScale * (sim.boosting ? 1.8 : 1.1));
+        const coreScale = (sim.boosting ? 1.4 : 0.75) + Math.sin(clock.elapsedTime * 24) * 0.06;
+        thrusterCore.current.scale.set(coreScale, coreScale, coreScale * (sim.boosting ? 1.6 : 1.1));
       }
     }
 

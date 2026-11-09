@@ -13,6 +13,7 @@ export function SpaceScene() {
     <div className="absolute inset-0 w-full h-full">
       <Canvas
         camera={{ position: [0, 4, -14], fov: 60, near: 0.2, far: 50000 }}
+        dpr={[1, 1.5]}
         gl={{
           antialias: true,
           toneMapping: THREE.ACESFilmicToneMapping,
@@ -88,15 +89,15 @@ export function SpaceScene() {
         <SimLoop />
 
         {/* Soft Aerospace Post-Processing: Gentle Bloom & Filmic Vignette */}
-        <EffectComposer multisampling={4} autoClear={false}>
+        <EffectComposer multisampling={0} autoClear={false}>
           <Bloom
             luminanceThreshold={0.82}
             luminanceSmoothing={0.3}
-            intensity={0.6}
+            intensity={0.55}
             radius={0.5}
             mipmapBlur
           />
-          <Vignette eskil={false} offset={0.16} darkness={0.42} />
+          <Vignette eskil={false} offset={0.16} darkness={0.4} />
         </EffectComposer>
       </Canvas>
     </div>
