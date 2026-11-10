@@ -54,10 +54,16 @@ export function useSpaceMaterials() {
       darkFoil: new THREE.MeshStandardMaterial({
         map: darkFoil.map,
         bumpMap: darkFoil.bump,
-        bumpScale: 0.6,
+        bumpScale: 0.5,
+        metalness: 0.72,
+        roughness: 0.35,
+        color: "#3a4150",
+      }),
+      ps4Thermal: new THREE.MeshPhysicalMaterial({
+        color: "#a44636", // Authentic ISRO PS4 reddish-copper / burnt-terracotta thermal insulation
         metalness: 0.65,
-        roughness: 0.48,
-        color: "#22252e",
+        roughness: 0.32,
+        clearcoat: 0.25,
       }),
       whiteChassis: new THREE.MeshStandardMaterial({
         color: "#e8edf2",
@@ -70,9 +76,9 @@ export function useSpaceMaterials() {
         roughness: 0.32,
       }),
       darkStructural: new THREE.MeshStandardMaterial({
-        color: "#181b22",
-        metalness: 0.6,
-        roughness: 0.45,
+        color: "#282d38",
+        metalness: 0.72,
+        roughness: 0.35,
       }),
       niobiumNozzle: new THREE.MeshStandardMaterial({
         color: "#4e4740",
@@ -132,6 +138,12 @@ export function Reviver() {
     const geo = new THREE.PlaneGeometry(0.55, 4.5);
     geo.translate(0, -2.25, 0);
     return geo;
+  }, []);
+
+  const spotTarget = useMemo(() => {
+    const obj = new THREE.Object3D();
+    obj.position.set(0, 0, 50);
+    return obj;
   }, []);
 
   const _q = useMemo(() => new THREE.Quaternion(), []);
@@ -233,6 +245,37 @@ export function Reviver() {
           <cylinderGeometry args={[0.12, 0.12, 0.05, 16]} />
         </mesh>
       </group>
+
+      {/* High-Power Forward Inspection Spotlight & Docking Floodlights Array */}
+      <primitive object={spotTarget} />
+      <spotLight
+        position={[0, 0, NOSE_OFFSET + 0.1]}
+        target={spotTarget}
+        intensity={32.0}
+        angle={0.7}
+        penumbra={0.45}
+        distance={180}
+        color="#edf5ff"
+      />
+      <pointLight
+        position={[0, 0, NOSE_OFFSET + 0.6]}
+        intensity={6.5}
+        distance={65}
+        color="#d8ebff"
+      />
+
+      {/* Dual High-Intensity Optical Headlamps on Reviver Bow */}
+      {[-0.55, 0.55].map((x, i) => (
+        <group key={i} position={[x, 0.48, 1.25]}>
+          <mesh material={mats.titanium}>
+            <cylinderGeometry args={[0.08, 0.11, 0.12, 16]} />
+          </mesh>
+          <mesh position={[0, 0, 0.065]}>
+            <circleGeometry args={[0.075, 16]} />
+            <meshBasicMaterial color={new THREE.Color(2.5, 2.8, 3.2)} />
+          </mesh>
+        </group>
+      ))}
 
       {/* Main Docking / Grapple Collar Ring */}
       <mesh material={mats.silver} position={[0, 0, NOSE_OFFSET - 0.4]} rotation={[0, 0, 0]}>
@@ -615,9 +658,14 @@ export function DebrisItem({ target }: { target: DebrisTarget }) {
   const mats = useSpaceMaterials();
   const root = useRef<THREE.Group>(null);
   const plasmaRef = useRef<THREE.Mesh>(null);
+  const beaconMat = useMemo(() => hdr(1.6, 2.4, 3.2), []);
 
-  useFrame((_, delta) => {
+  useFrame(({ clock }, delta) => {
     if (!root.current) return;
+
+    // Periodic telemetry beacon pulse for authentic orbital visibility
+    const blink = Math.sin(clock.elapsedTime * 4.5 + target.id.charCodeAt(0)) > 0.65 ? 1.0 : 0.08;
+    beaconMat.color.setRGB(1.6 * blink, 2.4 * blink, 3.2 * blink);
 
     if (target.captured) {
       // Attached rigidly to Reviver's bow
@@ -673,11 +721,14 @@ export function DebrisItem({ target }: { target: DebrisTarget }) {
       {/* 1. ISRO PSLV SPENT 4TH STAGE (POEM PLATFORM) */}
       {target.type === "rocket_stage" && (
         <group>
-          {/* Main Propellant Tank Casing */}
-          <mesh material={mats.darkStructural} castShadow>
+          {/* Main Propellant Tank Casing: Authentic ISRO Maroon-Copper Thermal Insulation */}
+          <mesh material={mats.ps4Thermal} castShadow>
             <cylinderGeometry args={[1.4, 1.4, 5.2, 32]} />
           </mesh>
-          {/* Corrugated Interstage Fairing Skirt */}
+          {/* Equipment Bay Avionics Ring: High-Visibility White & Titanium Bands */}
+          <mesh material={mats.whiteChassis} position={[0, 2.3, 0]}>
+            <cylinderGeometry args={[1.42, 1.42, 0.6, 32]} />
+          </mesh>
           <mesh material={mats.titanium} position={[0, -2.7, 0]}>
             <cylinderGeometry args={[1.42, 1.55, 1.2, 32, 1, true]} />
           </mesh>
@@ -695,19 +746,24 @@ export function DebrisItem({ target }: { target: DebrisTarget }) {
           ))}
           {/* Helium Pressurization Spheres */}
           {[-0.9, 0.9].map((x, i) => (
-            <mesh key={i} material={mats.titanium} position={[x, -0.6, 0.8]}>
-              <sphereGeometry args={[0.32, 16, 16]} />
+            <mesh key={i} material={mats.silver} position={[x, -0.6, 0.8]}>
+              <sphereGeometry args={[0.34, 16, 16]} />
             </mesh>
           ))}
           {/* POEM Experimental Solar Panel Platform */}
           <group position={[0, 1.8, 0]}>
-            <mesh material={mats.solarPanels} position={[1.65, 0, 0]} rotation={[0, 0.2, 0]}>
+            <mesh material={mats.solarCyanPanels} position={[1.65, 0, 0]} rotation={[0, 0.2, 0]}>
               <boxGeometry args={[1.8, 0.04, 1.2]} />
             </mesh>
-            <mesh material={mats.solarPanels} position={[-1.65, 0, 0]} rotation={[0, -0.2, 0]}>
+            <mesh material={mats.solarCyanPanels} position={[-1.65, 0, 0]} rotation={[0, -0.2, 0]}>
               <boxGeometry args={[1.8, 0.04, 1.2]} />
             </mesh>
           </group>
+          {/* Telemetry Beacon Strobe & Proximity Light */}
+          <mesh position={[0, 2.7, 0]} material={beaconMat}>
+            <sphereGeometry args={[0.09, 12, 12]} />
+          </mesh>
+          <pointLight position={[0, 2.7, 0]} intensity={1.8} distance={18} color="#38bdf8" />
         </group>
       )}
 
@@ -720,7 +776,7 @@ export function DebrisItem({ target }: { target: DebrisTarget }) {
           </mesh>
 
           {/* High-Resolution Earth Observation Optical / Radar Payload Baffle */}
-          <mesh material={mats.darkStructural} position={[0, 0, 1.25]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh material={mats.whiteChassis} position={[0, 0, 1.25]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.42, 0.48, 0.35, 24]} />
           </mesh>
           <mesh material={mats.sensorLens} position={[0, 0, 1.42]} rotation={[Math.PI / 2, 0, 0]}>
@@ -734,10 +790,10 @@ export function DebrisItem({ target }: { target: DebrisTarget }) {
               <sphereGeometry args={[1.7, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.42]} />
             </mesh>
             {/* Feed Horn Tripod Tower */}
-            <mesh material={mats.darkStructural} position={[0, 0.75, 0]}>
+            <mesh material={mats.titanium} position={[0, 0.75, 0]}>
               <cylinderGeometry args={[0.04, 0.04, 1.4, 8]} />
             </mesh>
-            <mesh material={mats.titanium} position={[0, 1.45, 0]}>
+            <mesh material={mats.silver} position={[0, 1.45, 0]}>
               <coneGeometry args={[0.16, 0.28, 12]} />
             </mesh>
           </group>
@@ -750,26 +806,25 @@ export function DebrisItem({ target }: { target: DebrisTarget }) {
                 <cylinderGeometry args={[0.07, 0.07, 0.5, 8]} />
               </mesh>
               {/* Photovoltaic Solar Panels */}
-              <mesh material={mats.solarPanels} position={[dir * 2.1, 0, 0]} rotation={[0.15, 0, 0]} castShadow>
+              <mesh material={mats.solarCyanPanels} position={[dir * 2.1, 0, 0]} rotation={[0.15, 0, 0]} castShadow>
                 <boxGeometry args={[3.2, 0.06, 1.35]} />
               </mesh>
             </group>
           ))}
 
           {/* Star Tracker Optical Baffles (Attitude Sensors) */}
-          <mesh material={mats.darkStructural} position={[0.7, -0.85, 0.6]} rotation={[0.4, 0, 0]}>
+          <mesh material={mats.titanium} position={[0.7, -0.85, 0.6]} rotation={[0.4, 0, 0]}>
             <cylinderGeometry args={[0.08, 0.05, 0.25, 12]} />
           </mesh>
-          <mesh material={mats.darkStructural} position={[-0.7, -0.85, 0.6]} rotation={[0.4, 0, 0]}>
+          <mesh material={mats.titanium} position={[-0.7, -0.85, 0.6]} rotation={[0.4, 0, 0]}>
             <cylinderGeometry args={[0.08, 0.05, 0.25, 12]} />
           </mesh>
 
-          {/* TTC Communication Whip Antennas */}
-          {[-0.6, 0.6].map((x, i) => (
-            <mesh key={i} material={mats.silver} position={[x, -0.9, -1.0]} rotation={[-0.4, 0, x * 0.2]}>
-              <cylinderGeometry args={[0.015, 0.015, 1.4, 6]} />
-            </mesh>
-          ))}
+          {/* Telemetry Beacon Strobe & Proximity Light */}
+          <mesh position={[0, 2.8, 0]} material={beaconMat}>
+            <sphereGeometry args={[0.09, 12, 12]} />
+          </mesh>
+          <pointLight position={[0, 2.8, 0]} intensity={1.8} distance={18} color="#38bdf8" />
         </group>
       )}
 
@@ -785,7 +840,7 @@ export function DebrisItem({ target }: { target: DebrisTarget }) {
             <torusGeometry args={[0.85, 0.12, 12, 32]} />
           </mesh>
           {/* Integrated Carbon Structural Truss Boom */}
-          <mesh material={mats.darkStructural} position={[1.8, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <mesh material={mats.titanium} position={[1.8, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
             <cylinderGeometry args={[0.14, 0.14, 2.4, 8]} />
           </mesh>
           {/* Massive Station Solar Array Dynamic Wing */}
@@ -796,6 +851,11 @@ export function DebrisItem({ target }: { target: DebrisTarget }) {
           <mesh material={mats.silver} position={[-1.6, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
             <boxGeometry args={[2.0, 0.04, 1.4]} />
           </mesh>
+          {/* Station Beacon Strobe & Proximity Light */}
+          <mesh position={[0, 1.35, 1.7]} material={beaconMat}>
+            <sphereGeometry args={[0.09, 12, 12]} />
+          </mesh>
+          <pointLight position={[0, 1.35, 1.7]} intensity={1.8} distance={18} color="#38bdf8" />
         </group>
       )}
 
@@ -806,41 +866,68 @@ export function DebrisItem({ target }: { target: DebrisTarget }) {
             <boxGeometry args={[1.2, 1.1, 1.6]} />
           </mesh>
           {/* Multi-spectral Optical Camera Barrel */}
-          <mesh material={mats.darkStructural} position={[0, 0, 0.9]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh material={mats.whiteChassis} position={[0, 0, 0.9]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.3, 0.35, 0.3, 16]} />
           </mesh>
           <mesh material={mats.sensorLens} position={[0, 0, 1.05]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.26, 0.26, 0.05, 16]} />
           </mesh>
           {/* Deployable Solar Panel */}
-          <mesh material={mats.solarPanels} position={[1.4, 0, 0]} rotation={[0.2, 0, 0]}>
+          <mesh material={mats.solarCyanPanels} position={[1.4, 0, 0]} rotation={[0.2, 0, 0]}>
             <boxGeometry args={[1.6, 0.04, 1.0]} />
           </mesh>
+          {/* Microsat Telemetry Beacon Strobe & Proximity Light */}
+          <mesh position={[0, 0.65, 0]} material={beaconMat}>
+            <sphereGeometry args={[0.08, 12, 12]} />
+          </mesh>
+          <pointLight position={[0, 0.65, 0]} intensity={1.6} distance={15} color="#38bdf8" />
         </group>
       )}
 
       {/* 5. IRNSS NAVIC SATELLITE TRANSPONDER */}
       {target.type === "sensor_bus" && (
         <group>
-          <mesh material={mats.darkFoil} castShadow>
-            <cylinderGeometry args={[1.1, 1.1, 2.2, 16]} />
+          {/* Main Spacecraft Bus: High-Albedo Gold Kapton MLI Thermal Blanket with Silver Collar */}
+          <mesh material={mats.gold} castShadow>
+            <cylinderGeometry args={[1.1, 1.1, 2.2, 24]} />
           </mesh>
-          <mesh material={mats.gold} position={[0, 0, 0.6]}>
-            <boxGeometry args={[0.8, 0.8, 0.8]} />
+          <mesh material={mats.silver} position={[0, 1.12, 0]}>
+            <cylinderGeometry args={[1.12, 1.12, 0.08, 24]} />
           </mesh>
-          {/* Helical Navigation Antennas */}
+          <mesh material={mats.silver} position={[0, -1.12, 0]}>
+            <cylinderGeometry args={[1.12, 1.12, 0.08, 24]} />
+          </mesh>
+          {/* Payload Module Equipment Box */}
+          <mesh material={mats.whiteChassis} position={[0, 0, 0.6]}>
+            <boxGeometry args={[0.85, 0.85, 0.85]} />
+          </mesh>
+          {/* Helical Navigation Antennas with Titanium Mast & Gold Coils */}
           {[-0.4, 0.4].map((x, i) => (
-            <mesh key={i} material={mats.silver} position={[x, 1.25, 0]}>
-              <cylinderGeometry args={[0.02, 0.02, 1.2, 8]} />
-            </mesh>
+            <group key={i} position={[x, 1.25, 0]}>
+              <mesh material={mats.whiteChassis} position={[0, -0.1, 0]}>
+                <cylinderGeometry args={[0.08, 0.1, 0.2, 12]} />
+              </mesh>
+              <mesh material={mats.gold} position={[0, 0.5, 0]}>
+                <cylinderGeometry args={[0.025, 0.025, 1.0, 8]} />
+              </mesh>
+            </group>
           ))}
+          {/* Active Navigation Telemetry Beacon & Proximity Light */}
+          <mesh position={[0, 1.85, 0]} material={beaconMat}>
+            <sphereGeometry args={[0.09, 12, 12]} />
+          </mesh>
+          <pointLight position={[0, 1.85, 0]} intensity={2.2} distance={20} color="#60a5fa" />
           {/* Dual Solar Wings */}
-          <mesh material={mats.solarPanels} position={[-1.7, 0, 0]}>
-            <boxGeometry args={[2.0, 0.04, 1.0]} />
-          </mesh>
-          <mesh material={mats.solarPanels} position={[1.7, 0, 0]}>
-            <boxGeometry args={[2.0, 0.04, 1.0]} />
-          </mesh>
+          {[-1, 1].map((dir, idx) => (
+            <group key={idx} position={[dir * 1.05, 0, 0]}>
+              <mesh material={mats.titanium} position={[dir * 0.2, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.05, 0.05, 0.4, 8]} />
+              </mesh>
+              <mesh material={mats.solarCyanPanels} position={[dir * 1.5, 0, 0]} castShadow>
+                <boxGeometry args={[2.4, 0.05, 1.1]} />
+              </mesh>
+            </group>
+          ))}
         </group>
       )}
 

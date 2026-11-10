@@ -40,7 +40,7 @@ export function SpaceScene() {
         {/* Primary Sun Directional Light */}
         <directionalLight
           position={[SUN_DIR.x * 220, SUN_DIR.y * 220, SUN_DIR.z * 220]}
-          intensity={3.8}
+          intensity={4.2}
           castShadow
           shadow-mapSize-width={1024}
           shadow-mapSize-height={1024}
@@ -56,17 +56,17 @@ export function SpaceScene() {
         {/* Secondary Soft Fill Light (Atmospheric Sun Scatter Fill) */}
         <directionalLight
           position={[-SUN_DIR.x * 180, -SUN_DIR.y * 90, -SUN_DIR.z * 180]}
-          intensity={1.15}
-          color="#90b4d6"
+          intensity={1.75}
+          color="#a0c6ed"
         />
 
         {/* Low Earth Orbit Albedo Bounce (Sky: Starlight, Ground: Earth Cyan-Blue Albedo) */}
         <hemisphereLight
-          args={["#cce3ff", "#20364d", 0.85]}
+          args={["#e2f0ff", "#365373", 1.25]}
         />
 
-        {/* Balanced Cosmic Ambient Fill - Brightens All Vehicle & Station Sides */}
-        <ambientLight intensity={0.45} color="#94a8c7" />
+        {/* Balanced Cosmic Ambient Fill - Ensures Clear Silhouette and Surface Detail in Deep Shadow */}
+        <ambientLight intensity={0.85} color="#9ab8dc" />
 
         {/* Photorealistic Earth with Custom Atmospheric Shader */}
         <Suspense fallback={<EarthFallback />}>

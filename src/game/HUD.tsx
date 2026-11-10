@@ -171,10 +171,23 @@ export function HUD() {
               }}
             >
               {isTarget ? (
-                <div className="flex flex-col items-center scale-105 opacity-90">
-                  <div className="h-4 w-4 rotate-45 border border-white bg-white/20" />
-                  <span className="mt-1 text-[9px] font-mono-tech tracking-wider text-zinc-200 bg-black/60 px-1.5 py-0.5 rounded">
-                    {deb.name} ({deb.screenPt.dist.toFixed(0)}M)
+                <div className="flex flex-col items-center transition-all duration-75">
+                  {deb.screenPt.dist <= 35 ? (
+                    /* High-tech optical proximity tracking bracket (frames the satellite cleanly) */
+                    <div className="relative h-11 w-11 flex items-center justify-center">
+                      <div className="absolute top-0 left-0 h-2.5 w-2.5 border-t-2 border-l-2 border-emerald-400" />
+                      <div className="absolute top-0 right-0 h-2.5 w-2.5 border-t-2 border-r-2 border-emerald-400" />
+                      <div className="absolute bottom-0 left-0 h-2.5 w-2.5 border-b-2 border-l-2 border-emerald-400" />
+                      <div className="absolute bottom-0 right-0 h-2.5 w-2.5 border-b-2 border-r-2 border-emerald-400" />
+                      <span className="text-[9px] font-mono-tech font-bold text-emerald-300 drop-shadow">
+                        {deb.screenPt.dist.toFixed(1)}M
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="h-4 w-4 rotate-45 border border-white bg-white/20" />
+                  )}
+                  <span className="mt-1 text-[9px] font-mono-tech tracking-wider text-zinc-200 bg-black/60 px-1.5 py-0.5 rounded border border-white/10">
+                    {deb.name} {deb.screenPt.dist > 35 ? `(${deb.screenPt.dist.toFixed(0)}M)` : ""}
                   </span>
                 </div>
               ) : (
